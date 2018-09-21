@@ -72,6 +72,8 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	//}
 
 	//fmt.Println(buf.String())
+
+	defer connection.Close()
 }
 
 // DbConnect 環境変数を利用しDBへのConnectionを取得する
