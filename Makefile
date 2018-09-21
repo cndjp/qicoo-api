@@ -10,6 +10,7 @@ LDFLAGS := -ldflags="-s -X \"main.version=$(VERSION)\""
 OPTS :=-a -installsuffix cgo
 
 $(TARGET): $(SRCS)
+	golint ${NAME}.go
 	go build $(OPTS) $(LDFLAGS) -o bin/$(NAME) ${NAME}.go
 
 .PHONY: install
