@@ -7,6 +7,7 @@ import (
 	_ "log"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
@@ -25,10 +26,18 @@ type Question struct {
 
 // QuestionCreateHandler QuestionオブジェクトをDBとRedisに書き込む
 func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
+
+	// DBとRedisに書き込むためのstiruct Object を生成
 	var question Question
+	decoder := json.NewDecoder(r.Body)
 	decoder.Decode(&question)
-	w.Write([]byte("comment " + question.Comment))
+
+	// uuidを新たに生成
+	newUUID := uuid.New()
+	question.ID = newUUID.String()
+	//fmt.Println(newUUID.String())
+
+	w.Write([]byte("comment:" + question.Comment + " ID:" + question.ID + "\n"))
 	//question := &Question{ID: "testid"}
 
 	//var buf bytes.Buffer
@@ -39,6 +48,11 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	//fmt.Println(buf.String())
 }
+
+// createUUID uuidを生成
+// func createUUID() {
+
+//}
 
 func main() {
 	r := mux.NewRouter()
