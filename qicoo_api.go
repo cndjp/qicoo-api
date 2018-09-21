@@ -1,14 +1,31 @@
 package main
 
 import (
-	_ "fmt"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
 )
 
+// Question Questionオブジェクトを扱うためのstruct
+type Question struct {
+	ID string `json:"id"`
+}
+
+// QuestionCreateHandler QuestionオブジェクトをDBとRedisに書き込む
 func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Gorilla!\n"))
+	question := &Question{ID: "testid"}
+
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	if err := enc.Encode(question); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(buf.String())
 }
 
 func main() {
