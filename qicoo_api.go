@@ -60,17 +60,6 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("%+v", err)
 	}
 
-	var questions2 []Question
-	_, err = dbmap.Select(&questions2, "select * from questions")
-
-	if err != nil {
-		fmt.Printf("%+v", err)
-	}
-
-	for x, p := range questions2 {
-		fmt.Printf("    %d: %v\n", x, p)
-	}
-
 	// debug
 	//	w.Write([]byte("comment: " + question.Comment + "\n" +
 	//		"ID: " + question.ID + "\n" +
@@ -86,6 +75,33 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	//}
 
 	//fmt.Println(buf.String())
+
+	defer dbmap.Db.Close()
+}
+
+// QuestionListHandler QuestionオブジェクトをRedisから取得する。存在しない場合はDBから取得し、Redisへ格納する
+// TODO: pagenationなどのパラメータ制御。まだ仮実装
+func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
+	// URLに含まれている event_id を取得して、questionオブジェクトに格納
+	//vars := mux.Vars(r)
+	//eventID := vars["event_id"]
+
+	dbmap, err := initDb()
+
+	if err != nil {
+		fmt.Printf("%+v", err)
+	}
+
+	var questions []Question
+	_, err = dbmap.Select(&questions, "select * from questions")
+
+	if err != nil {
+		fmt.Printf("%+v", err)
+	}
+
+	for x, p := range questions {
+		fmt.Printf("    %d: %v\n", x, p)
+	}
 
 	defer dbmap.Db.Close()
 }
@@ -121,6 +137,11 @@ func main() {
 	r.Path("/v1/{event_id}/questions").
 		Methods("POST").
 		HandlerFunc(QuestionCreateHandler)
+
+	// route QuestionList
+	r.Path("/v1/{event_id}/questions").
+		Methods("GET").
+		HandlerFunc(QuestionListHandler)
 
 	http.ListenAndServe(":8080", r)
 }
