@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	_ "strconv"
+	"time"
 
 	"github.com/go-gorp/gorp"
 	_ "github.com/go-sql-driver/mysql"
@@ -19,42 +20,58 @@ import (
 
 // Question Questionオブジェクトを扱うためのstruct
 type Question struct {
-	ID        string `json:"id" db:"id"`
-	Object    string `json:"object" db:"object"`
-	Username  string `json:"username" db:"username"`
-	EventID   string `json:"event_id" db:"event_id"`
-	ProgramID string `json:"program_id" db:"program_id"`
-	Comment   string `json:"comment" db:"comment"`
-	CreatedAt string `json:"created_at" db:"created_at"`
-	UpdateAt  string `json:"update_at" db:"update_at"`
-	Like      int    `json:"like" db:"like_count"`
+	ID        string    `json:"id" db:"id"`
+	Object    string    `json:"object" db:"object"`
+	Username  string    `json:"username" db:"username"`
+	EventID   string    `json:"event_id" db:"event_id"`
+	ProgramID string    `json:"program_id" db:"program_id"`
+	Comment   string    `json:"comment" db:"comment"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdateAt  time.Time `json:"update_at" db:"update_at"`
+	Like      int       `json:"like" db:"like_count"`
 }
 
 // QuestionCreateHandler QuestionオブジェクトをDBとRedisに書き込む
 func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	// DBとRedisに書き込むためのstiruct Object を生成。POST REQUEST のBodyから値を取得
-	var questions Question
+	var question Question
 	decoder := json.NewDecoder(r.Body)
-	decoder.Decode(&questions)
+	decoder.Decode(&question)
 
-	// POST REQUEST の BODY に含まれていない値の生成
+	/* POST REQUEST の BODY に含まれていない値の生成 */
+	// uuid
 	newUUID := uuid.New()
-	questions.ID = newUUID.String()
+	question.ID = newUUID.String()
 
-	//questions.Object = "question"
+	// object
+	question.Object = "question"
 
+	// username
 	// TODO: Cookieからsessionidを取得して、Redisに存在する場合は、usernameを取得してquestionオブジェクトに格納する
-	questions.Username = "anonymous"
+	question.Username = "anonymous"
 
-	// URLに含まれている event_id を取得して、questionオブジェクトに格納
+	// event_id URLに含まれている event_id を取得して、questionオブジェクトに格納
 	vars := mux.Vars(r)
 	eventID := vars["event_id"]
-	questions.EventID = eventID
+	question.EventID = eventID
 
-	questions.Like = 0
+	// likeの数
+	question.Like = 0
+
+	// debug
+	//w.Write([]byte("comment: " + question.Comment + "\n" +
+	//	"ID: " + question.ID + "\n" +
+	//	"Object: " + question.Object + "\n" +
+	//	"eventID: " + question.EventID + "\n" +
+	//	"programID: " + question.ProgramID + "\n" +
+	//	"username: " + question.Username + "\n" +
+	//	"Like: " + strconv.Itoa(question.Like) + "\n"))
 
 	dbmap, err := initDb()
+
+	// debug SQL Trace
+	//dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
 
 	if err != nil {
 		causeErr := errors.Cause(err)
@@ -62,13 +79,13 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// debug
-	//	w.Write([]byte("comment: " + question.Comment + "\n" +
-	//		"ID: " + question.ID + "\n" +
-	//		"Object: " + question.Object + "\n" +
-	//		"eventID: " + question.EventID + "\n" +
-	//		"programID: " + question.ProgramID + "\n" +
-	//		"Like: " + strconv.Itoa(question.Like) + "\n"))
+	/* データの挿入 */
+	err = dbmap.Insert(&question)
+
+	if err != nil {
+		fmt.Printf("%+v", err)
+		return
+	}
 
 	//var buf bytes.Buffer
 	//enc := json.NewEncoder(&buf)
@@ -119,20 +136,17 @@ func initDb() (dbmap *gorp.DbMap, err error) {
 	password := os.Getenv("DB_PASSWORD")
 	protocol := "tcp(" + os.Getenv("DB_URL") + ")"
 	dbname := "qicoo"
+	option := "?parseTime=true"
 
-	connect := user + ":" + password + "@" + protocol + "/" + dbname
+	connect := user + ":" + password + "@" + protocol + "/" + dbname + option
 	db, err := sql.Open(dbms, connect)
 
-	dbmap = &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
-
 	if err != nil {
-		return nil, errors.Wrap(err, "error on initDb()s")
+		return nil, errors.Wrap(err, "error on initDb()")
 	}
 
-	// construct a gorp DbMap
-	dbmap = &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
-
 	// structの構造体とDBのTableを紐づける
+	dbmap = &gorp.DbMap{Db: db, Dialect: gorp.MySQLDialect{}}
 	dbmap.AddTableWithName(Question{}, "questions")
 
 	return dbmap, nil
