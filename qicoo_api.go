@@ -27,7 +27,7 @@ type Question struct {
 	ProgramID string    `json:"program_id" db:"program_id"`
 	Comment   string    `json:"comment" db:"comment"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdateAt  time.Time `json:"update_at" db:"update_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 	Like      int       `json:"like" db:"like_count"`
 }
 
@@ -150,6 +150,14 @@ func initDb() (dbmap *gorp.DbMap, err error) {
 	dbmap.AddTableWithName(Question{}, "questions")
 
 	return dbmap, nil
+}
+
+// PreInsert insert処理をhookして時刻を変更
+func (u *Question) PreInsert(s gorp.SqlExecutor) error {
+	now := time.Now()
+	u.UpdatedAt = now
+	u.CreatedAt = now
+	return nil
 }
 
 func main() {
