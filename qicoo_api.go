@@ -18,6 +18,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+// QuestionList Questionを複数格納するstruck
+type QuestionList struct {
+	Object string     `json:"object"`
+	Type   string     `json:"type"`
+	Data   []Question `json:"data"`
+}
+
 // Question Questionオブジェクトを扱うためのstruct
 type Question struct {
 	ID        string    `json:"id" db:"id"`
@@ -127,13 +134,27 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// DB or Redis から取得したデータのtimezoneをAsia/Tokyoと指定
+	locationTokyo, err := time.LoadLocation("Asia/Tokyo")
+	for i := range questions {
+		questions[i].CreatedAt = questions[i].CreatedAt.In(locationTokyo)
+		questions[i].UpdatedAt = questions[i].UpdatedAt.In(locationTokyo)
+	}
+	fmt.Print(questions)
+
+	// DB or Redisから取得したデータをQuestionListの構造体に格納
+	var questionList QuestionList
+	questionList.Data = questions
+	questionList.Object = "list"
+	questionList.Type = "question"
+
 	/* JSONの整形 */
 	// QuestionのStructをjsonとして変換
-	jsonBytes, err := json.Marshal(questions)
+	jsonBytes, err := json.Marshal(questionList)
 
 	// 整形用のバッファを作成し、整形を実行
 	out := new(bytes.Buffer)
-	// プリフィックスなし、スペース4つでインデント
+	// プリフィックスなし、スペース2つでインデント
 	json.Indent(out, jsonBytes, "", "  ")
 
 	w.Write([]byte(out.String()))
