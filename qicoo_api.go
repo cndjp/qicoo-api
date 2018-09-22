@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	_ "log"
@@ -9,53 +10,66 @@ import (
 	"os"
 	_ "strconv"
 
+	"github.com/go-gorp/gorp"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"github.com/pkg/errors"
 )
 
 // Question Questionオブジェクトを扱うためのstruct
 type Question struct {
-	ID        string `json:"id"`
-	Object    string `json:"object"`
-	Username  string `json:"username"`
-	EventID   string `json:"event_id"`
-	ProgramID string `json:"program_id"`
-	Comment   string `json:"comment"`
-	CreatedAt string `json:"created_at"`
-	UpdateAt  string `json:"update_at"`
-	Like      int    `json:"like"`
+	ID        string `json:"id" db:"id"`
+	Object    string `json:"object" db:"object"`
+	Username  string `json:"username" db:"username"`
+	EventID   string `json:"event_id" db:"event_id"`
+	ProgramID string `json:"program_id" db:"program_id"`
+	Comment   string `json:"comment" db:"comment"`
+	CreatedAt string `json:"created_at" db:"created_at"`
+	UpdateAt  string `json:"update_at" db:"update_at"`
+	Like      int    `json:"like" db:"like_count"`
 }
 
 // QuestionCreateHandler QuestionオブジェクトをDBとRedisに書き込む
 func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	// DBとRedisに書き込むためのstiruct Object を生成。POST REQUEST のBodyから値を取得
-	var question Question
+	var questions Question
 	decoder := json.NewDecoder(r.Body)
-	decoder.Decode(&question)
+	decoder.Decode(&questions)
 
 	// POST REQUEST の BODY に含まれていない値の生成
 	newUUID := uuid.New()
-	question.ID = newUUID.String()
+	questions.ID = newUUID.String()
 
-	question.Object = "question"
+	//questions.Object = "question"
 
 	// TODO: Cookieからsessionidを取得して、Redisに存在する場合は、usernameを取得してquestionオブジェクトに格納する
+	questions.Username = "anonymous"
 
 	// URLに含まれている event_id を取得して、questionオブジェクトに格納
 	vars := mux.Vars(r)
 	eventID := vars["event_id"]
-	question.EventID = eventID
+	questions.EventID = eventID
 
-	question.Like = 0
+	questions.Like = 0
 
-	connection := DbConnect()
+	dbmap, err := initDb()
 
-	QuestionsEx := []Question{}
-	connection.Find(&QuestionsEx, "event_id=?", "jkd1812")
-	fmt.Println(QuestionsEx)
+	if err != nil {
+		fmt.Printf("%+v", err)
+	}
+
+	var questions2 []Question
+	_, err = dbmap.Select(&questions2, "select * from questions")
+
+	if err != nil {
+		fmt.Printf("%+v", err)
+	}
+
+	for x, p := range questions2 {
+		fmt.Printf("    %d: %v\n", x, p)
+	}
 
 	// debug
 	//	w.Write([]byte("comment: " + question.Comment + "\n" +
@@ -73,11 +87,11 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	//fmt.Println(buf.String())
 
-	defer connection.Close()
+	defer dbmap.Db.Close()
 }
 
 // DbConnect 環境変数を利用しDBへのConnectionを取得する
-func DbConnect() *gorm.DB {
+func initDb() (dbmap *gorp.DbMap, err error) {
 	dbms := "mysql"
 	user := os.Getenv("DB_USER")
 	password := os.Getenv("DB_PASSWORD")
@@ -85,19 +99,20 @@ func DbConnect() *gorm.DB {
 	dbname := "qicoo"
 
 	connect := user + ":" + password + "@" + protocol + "/" + dbname
-	fmt.Println("dbms: " + dbms)
-	fmt.Println("connect: " + connect)
-	db, err := gorm.Open(dbms, connect)
+	db, err := sql.Open(dbms, connect)
 
 	if err != nil {
-		panic(err.Error())
+		return nil, errors.Wrap(err, "error cant open connection")
 	}
-	return db
-}
 
-//func DbQuestionCreate() {
-//
-//}
+	// construct a gorp DbMap
+	dbmap = &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
+
+	// structの構造体とDBのTableを紐づける
+	dbmap.AddTableWithName(Question{}, "questions")
+
+	return dbmap, nil
+}
 
 func main() {
 	r := mux.NewRouter()
