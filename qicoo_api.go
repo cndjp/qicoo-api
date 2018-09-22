@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "bytes"
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -56,8 +56,13 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	eventID := vars["event_id"]
 	question.EventID = eventID
 
-	// likeの数
+	// いいねの数
 	question.Like = 0
+
+	// 時刻の取得
+	now := time.Now()
+	question.UpdatedAt = now
+	question.CreatedAt = now
 
 	// debug
 	//w.Write([]byte("comment: " + question.Comment + "\n" +
@@ -122,9 +127,16 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for x, p := range questions {
-		fmt.Printf("    %d: %v\n", x, p)
-	}
+	/* JSONの整形 */
+	// QuestionのStructをjsonとして変換
+	jsonBytes, err := json.Marshal(questions)
+
+	// 整形用のバッファを作成し、整形を実行
+	out := new(bytes.Buffer)
+	// プリフィックスなし、スペース4つでインデント
+	json.Indent(out, jsonBytes, "", "  ")
+
+	w.Write([]byte(out.String()))
 
 	defer dbmap.Db.Close()
 }
@@ -150,14 +162,6 @@ func initDb() (dbmap *gorp.DbMap, err error) {
 	dbmap.AddTableWithName(Question{}, "questions")
 
 	return dbmap, nil
-}
-
-// PreInsert insert処理をhookして時刻を変更
-func (u *Question) PreInsert(s gorp.SqlExecutor) error {
-	now := time.Now()
-	u.UpdatedAt = now
-	u.CreatedAt = now
-	return nil
 }
 
 func main() {
