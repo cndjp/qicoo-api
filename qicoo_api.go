@@ -57,7 +57,9 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	dbmap, err := initDb()
 
 	if err != nil {
-		fmt.Printf("%+v", err)
+		causeErr := errors.Cause(err)
+		fmt.Printf("%+v", causeErr)
+		return
 	}
 
 	// debug
@@ -89,14 +91,18 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 	dbmap, err := initDb()
 
 	if err != nil {
-		fmt.Printf("%+v", err)
+		causeErr := errors.Cause(err)
+		fmt.Printf("%+v", causeErr)
+		return
 	}
 
 	var questions []Question
 	_, err = dbmap.Select(&questions, "select * from questions")
 
 	if err != nil {
-		fmt.Printf("%+v", err)
+		causeErr := errors.Cause(err)
+		fmt.Printf("%+v", causeErr)
+		return
 	}
 
 	for x, p := range questions {
@@ -117,8 +123,10 @@ func initDb() (dbmap *gorp.DbMap, err error) {
 	connect := user + ":" + password + "@" + protocol + "/" + dbname
 	db, err := sql.Open(dbms, connect)
 
+	dbmap = &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
+
 	if err != nil {
-		return nil, errors.Wrap(err, "error cant open connection")
+		return nil, errors.Wrap(err, "error on initDb()s")
 	}
 
 	// construct a gorp DbMap
