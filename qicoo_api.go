@@ -114,7 +114,6 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // QuestionListHandler QuestionオブジェクトをRedisから取得する。存在しない場合はDBから取得し、Redisへ格納する
-// TODO: pagenationなどのパラメータ制御。まだ仮実装
 func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 	// URLに含まれている event_id を取得
 	vars := mux.Vars(r)
@@ -261,10 +260,6 @@ func getQuestionList(eventID string, start int, end int, sort string, order stri
 	var bytesSlice [][]byte
 	bytesSlice, _ = redis.ByteSlices(redisConn.Do("HMGET", list...))
 
-	deserialized := new(Question)
-	json.Unmarshal(bytesSlice[0], deserialized)
-	fmt.Print(deserialized.Comment)
-
 	var questions []Question
 	for _, bytes := range bytesSlice {
 		q := new(Question)
@@ -307,6 +302,7 @@ func getQuestionList(eventID string, start int, end int, sort string, order stri
 
 // syncQuestion DBとRedisのデータを同期する
 // RedisのデータがTTLなどで存在していない場合にsyncQuestionを使用する
+// TODO: RedisデータのTTL
 func syncQuestion(eventID string) {
 	redisConnection := getRedisConnection()
 	defer redisConnection.Close()
