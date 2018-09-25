@@ -8,7 +8,7 @@ import (
 	_ "log"
 	"net/http"
 	"os"
-	_ "strconv"
+	"strconv"
 	"time"
 
 	"github.com/go-gorp/gorp"
@@ -119,6 +119,10 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 	// URLに含まれている event_id を取得
 	vars := mux.Vars(r)
 	eventID := vars["event_id"]
+	start, _ := strconv.Atoi(vars["start"])
+	end, _ := strconv.Atoi(vars["end"])
+	sort := vars["sort"]
+	order := vars["order"]
 
 	// Redisにデータが存在するか確認
 	//redisConnection := getRedisConnection()
@@ -156,7 +160,7 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 	//questionList.Object = "list"
 	//questionList.Type = "question"
 
-	questionList := getQuestionList(eventID)
+	questionList := getQuestionList(eventID, start, end, sort, order)
 
 	/* JSONの整形 */
 	// QuestionのStructをjsonとして変換
@@ -205,7 +209,7 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // getQuestions RedisとDBからデータを取得する
-func getQuestionList(eventID string) (questionList QuestionList) {
+func getQuestionList(eventID string, start int, end int, sort string, order string) (questionList QuestionList) {
 	redisConn := getRedisConnection()
 	defer redisConn.Close()
 
@@ -221,28 +225,75 @@ func getQuestionList(eventID string) (questionList QuestionList) {
 		syncQuestion(eventID)
 	}
 
-	/* temp */
-	// DBからデータを取得
-	dbmap, err := initDb()
-	defer dbmap.Db.Close()
-
-	if err != nil {
-		causeErr := errors.Cause(err)
-		fmt.Printf("%+v", causeErr)
-		return
+	/* Redisからデータを取得する */
+	// redisのcommand
+	var redisCommand string
+	if order == "asc" {
+		redisCommand = "ZRANGE"
+	} else if order == "desc" {
+		redisCommand = "ZREVRANGE"
 	}
+
+	// sort redisのkey
+	var sortedkey string
+	if sort == "created_at" {
+		sortedkey = createdSortedKey
+	} else if sort == "like" {
+		sortedkey = likeSortedKey
+	}
+
+	// debug
+	fmt.Println(redisCommand, sortedkey, start-1, end-1)
+
+	// API実行時に指定されたSortをRedisで実行
+	var uuidSlice []string
+	uuidSlice, _ = redis.Strings(redisConn.Do(redisCommand, sortedkey, start-1, end-1))
+	fmt.Println(uuidSlice)
+
+	// RedisのDo関数は、Interface型のSliceしか受け付けないため、makeで生成 (String型のSliceはコンパイルエラー)
+	// Example) HMGET questions_jks1812 questionID questionID questionID questionID ...
+	var list = make([]interface{}, 0, 20)
+	list = append(list, questionsKey)
+	for _, str := range uuidSlice {
+		list = append(list, str)
+	}
+
+	var bytesSlice [][]byte
+	bytesSlice, _ = redis.ByteSlices(redisConn.Do("HMGET", list...))
+
+	deserialized := new(Question)
+	json.Unmarshal(bytesSlice[0], deserialized)
+	fmt.Print(deserialized.Comment)
 
 	var questions []Question
-	_, err = dbmap.Select(&questions, "select * from questions")
-
-	if err != nil {
-		causeErr := errors.Cause(err)
-		fmt.Printf("%+v", causeErr)
-		return
+	for _, bytes := range bytesSlice {
+		q := new(Question)
+		json.Unmarshal(bytes, q)
+		questions = append(questions, *q)
 	}
 
+	/* temp */
+	// DBからデータを取得
+	//dbmap, err := initDb()
+	//defer dbmap.Db.Close()
+	//
+	//	if err != nil {
+	//		causeErr := errors.Cause(err)
+	//		fmt.Printf("%+v", causeErr)
+	//		return
+	//	}
+	//
+	//	var questions []Question
+	//	_, err = dbmap.Select(&questions, "select * from questions")
+	//
+	//	if err != nil {
+	//		causeErr := errors.Cause(err)
+	//		fmt.Printf("%+v", causeErr)
+	//		return
+	//	}
+
 	// DB or Redis から取得したデータのtimezoneをAsia/Tokyoと指定
-	locationTokyo, err := time.LoadLocation("Asia/Tokyo")
+	locationTokyo, _ := time.LoadLocation("Asia/Tokyo")
 	for i := range questions {
 		questions[i].CreatedAt = questions[i].CreatedAt.In(locationTokyo)
 		questions[i].UpdatedAt = questions[i].UpdatedAt.In(locationTokyo)
@@ -293,6 +344,7 @@ func syncQuestion(eventID string) {
 	for _, question := range questions {
 		//HashMap SerializedされたJSONデータを格納
 		serializedJSON, _ := json.Marshal(question)
+		fmt.Println(questionsKey, " ", question.ID, " ", serializedJSON)
 		redisConnection.Do("HSET", questionsKey, question.ID, serializedJSON)
 
 		//SortedSet(Like)
@@ -314,7 +366,7 @@ func getQuestionsKey(eventID string) (questionsKey string, likeSortedKey string,
 
 // redisHasKey
 func redisHasKey(conn redis.Conn, key string) bool {
-	hasInt, _ := conn.Do("HEXISTS", key)
+	hasInt, _ := redis.Int(conn.Do("EXISTS", key))
 
 	var hasKey bool
 	if hasInt == 1 {
@@ -383,6 +435,10 @@ func main() {
 	// route QuestionList
 	r.Path("/v1/{event_id:[a-zA-Z0-9-_]+}/questions").
 		Methods("GET").
+		Queries("start", "{start:[0-9]+}").
+		Queries("end", "{end:[0-9]+}").
+		Queries("sort", "{sort:[a-zA-Z0-9-_]+}").
+		Queries("order", "{order:[a-zA-Z0-9-_]+}").
 		HandlerFunc(QuestionListHandler)
 
 	http.ListenAndServe(":8080", r)
