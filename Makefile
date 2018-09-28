@@ -11,7 +11,7 @@ OPTS :=-a -installsuffix cgo
 
 $(TARGET): $(SRCS)
 	golint ${NAME}.go
-	go build $(OPTS) $(LDFLAGS) -o bin/$(NAME) ${NAME}.go
+	go build $(OPTS) $(LDFLAGS) -o bin/$(NAME) src/${NAME}.go
 
 .PHONY: install
 install:
