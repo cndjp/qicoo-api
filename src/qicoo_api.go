@@ -75,19 +75,23 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	question.CreatedAt = now
 
 	// debug
-	//w.Write([]byte("comment: " + question.Comment + "\n" +
-	//	"ID: " + question.ID + "\n" +
-	//	"Object: " + question.Object + "\n" +
-	//	"eventID: " + question.EventID + "\n" +
-	//	"programID: " + question.ProgramID + "\n" +
-	//	"username: " + question.Username + "\n" +
-	//	"Like: " + strconv.Itoa(question.Like) + "\n"))
+	if *debug {
+		w.Write([]byte("comment: " + question.Comment + "\n" +
+			"ID: " + question.ID + "\n" +
+			"Object: " + question.Object + "\n" +
+			"eventID: " + question.EventID + "\n" +
+			"programID: " + question.ProgramID + "\n" +
+			"username: " + question.Username + "\n" +
+			"Like: " + strconv.Itoa(question.Like) + "\n"))
+	}
 
 	dbmap, err := initDb()
 	defer dbmap.Db.Close()
 
 	// debug SQL Trace
-	//dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
+	if *debug {
+		dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
+	}
 
 	if err != nil {
 		causeErr := errors.Cause(err)
@@ -103,14 +107,6 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//var buf bytes.Buffer
-	//enc := json.NewEncoder(&buf)
-	//if err := enc.Encode(question); err != nil {
-	//	log.Fatal(err)
-	//}
-
-	//fmt.Println(buf.String())
-
 }
 
 // QuestionListHandler QuestionオブジェクトをRedisから取得する。存在しない場合はDBから取得し、Redisへ格納する
@@ -122,42 +118,6 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 	end, _ := strconv.Atoi(vars["end"])
 	sort := vars["sort"]
 	order := vars["order"]
-
-	// Redisにデータが存在するか確認
-	//redisConnection := getRedisConnection()
-	//defer redisConnection.Close()
-
-	// DBからデータを取得
-	//dbmap, err := initDb()
-	//defer dbmap.Db.Close()
-
-	//if err != nil {
-	//	causeErr := errors.Cause(err)
-	//	fmt.Printf("%+v", causeErr)
-	//	return
-	//}
-
-	//var questions []Question
-	//_, err = dbmap.Select(&questions, "select * from questions")
-
-	//if err != nil {
-	//	causeErr := errors.Cause(err)
-	//	fmt.Printf("%+v", causeErr)
-	//	return
-	//}
-
-	// DB or Redis から取得したデータのtimezoneをAsia/Tokyoと指定
-	//locationTokyo, err := time.LoadLocation("Asia/Tokyo")
-	//for i := range questions {
-	//	questions[i].CreatedAt = questions[i].CreatedAt.In(locationTokyo)
-	//	questions[i].UpdatedAt = questions[i].UpdatedAt.In(locationTokyo)
-	//}
-
-	// DB or Redisから取得したデータをQuestionListの構造体に格納
-	//var questionList QuestionList
-	//questionList.Data = questions
-	//questionList.Object = "list"
-	//questionList.Type = "question"
 
 	questionList := getQuestionList(eventID, start, end, sort, order)
 
@@ -172,39 +132,6 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Write([]byte(out.String()))
 
-	// redis test1
-	//w2, _ := redisConnection.Do("SET", "testjon", questions[0])
-	//r2, _ := redisConnection.Do("GET", "testjon")
-	//fmt.Print(w2)
-	//fmt.Print(r2)
-
-	// redis test2
-	// sorted list
-	//redisConnection.Do("ZADD", "testsort1", 1, "a")
-	//redisConnection.Do("ZADD", "testsort1", 2, "b")
-	//redisConnection.Do("ZADD", "testsort1", 3, "c")
-	//redisConnection.Do("ZADD", "testsort1", 4, "d")
-	//redisConnection.Do("ZADD", "testsort1", 5, "e")
-	//r2, _ := redis.Strings(redisConnection.Do("ZRANGE", "testsort1", 0, -1, "WITHSCORES"))
-	//fmt.Print(r2)
-
-	// redis test3
-	// sorted list
-	//redisConnection.Do("ZADD", "testsort2", questions[0].CreatedAt.Unix(), "quest0")
-	//redisConnection.Do("ZADD", "testsort2", questions[1].CreatedAt.Unix(), "quest1")
-	//r2, _ := redis.Strings(redisConnection.Do("ZRANGE", "testsort2", 0, -1, "WITHSCORES"))
-	//fmt.Print(r2)
-
-	// redis test4
-	// JSON in hash
-	//serialized0, err := json.Marshal(questions[0])
-	//serialized1, err := json.Marshal(questions[1])
-	//redisConnection.Do("HSET", "testhash1", "1", serialized0)
-	//redisConnection.Do("HSET", "testhash1", "2", serialized1)
-	//data, _ := redis.Bytes(redisConnection.Do("HGET", "testhash1", "1"))
-	//deserialized := new(Question)
-	//json.Unmarshal(data, deserialized)
-	//fmt.Print(deserialized.Comment)
 }
 
 // getQuestions RedisとDBからデータを取得する
@@ -266,26 +193,6 @@ func getQuestionList(eventID string, start int, end int, sort string, order stri
 		json.Unmarshal(bytes, q)
 		questions = append(questions, *q)
 	}
-
-	/* temp */
-	// DBからデータを取得
-	//dbmap, err := initDb()
-	//defer dbmap.Db.Close()
-	//
-	//	if err != nil {
-	//		causeErr := errors.Cause(err)
-	//		fmt.Printf("%+v", causeErr)
-	//		return
-	//	}
-	//
-	//	var questions []Question
-	//	_, err = dbmap.Select(&questions, "select * from questions")
-	//
-	//	if err != nil {
-	//		causeErr := errors.Cause(err)
-	//		fmt.Printf("%+v", causeErr)
-	//		return
-	//	}
 
 	// DB or Redis から取得したデータのtimezoneをAsia/Tokyoと指定
 	locationTokyo, _ := time.LoadLocation("Asia/Tokyo")
