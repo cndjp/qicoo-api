@@ -52,170 +52,170 @@ type Question struct {
 var redisPool *redis.Pool
 
 // QuestionCreateHandler QuestionオブジェクトをDBとRedisに書き込む
-func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
+// func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 
-	// DBとRedisに書き込むためのstiruct Object を生成。POST REQUEST のBodyから値を取得
-	var question Question
-	decoder := json.NewDecoder(r.Body)
-	decoder.Decode(&question)
+// 	// DBとRedisに書き込むためのstiruct Object を生成。POST REQUEST のBodyから値を取得
+// 	var question Question
+// 	decoder := json.NewDecoder(r.Body)
+// 	decoder.Decode(&question)
 
-	/* POST REQUEST の BODY に含まれていない値の生成 */
-	// uuid
-	newUUID := uuid.New()
-	question.ID = newUUID.String()
+// 	/* POST REQUEST の BODY に含まれていない値の生成 */
+// 	// uuid
+// 	newUUID := uuid.New()
+// 	question.ID = newUUID.String()
 
-	// object
-	question.Object = "question"
+// 	// object
+// 	question.Object = "question"
 
-	// username
-	// TODO: Cookieからsessionidを取得して、Redisに存在する場合は、usernameを取得してquestionオブジェクトに格納する
-	question.Username = "anonymous"
+// 	// username
+// 	// TODO: Cookieからsessionidを取得して、Redisに存在する場合は、usernameを取得してquestionオブジェクトに格納する
+// 	question.Username = "anonymous"
 
-	// event_id URLに含まれている event_id を取得して、questionオブジェクトに格納
-	vars := mux.Vars(r)
-	eventID := vars["event_id"]
-	question.EventID = eventID
+// 	// event_id URLに含まれている event_id を取得して、questionオブジェクトに格納
+// 	vars := mux.Vars(r)
+// 	eventID := vars["event_id"]
+// 	question.EventID = eventID
 
-	// いいねの数
-	question.Like = 0
+// 	// いいねの数
+// 	question.Like = 0
 
-	// 時刻の取得
-	now := time.Now()
-	question.UpdatedAt = now
-	question.CreatedAt = now
+// 	// 時刻の取得
+// 	now := time.Now()
+// 	question.UpdatedAt = now
+// 	question.CreatedAt = now
 
-	// debug
-	if *verbose {
-		w.Write([]byte("comment: " + question.Comment + "\n" +
-			"ID: " + question.ID + "\n" +
-			"Object: " + question.Object + "\n" +
-			"eventID: " + question.EventID + "\n" +
-			"programID: " + question.ProgramID + "\n" +
-			"username: " + question.Username + "\n" +
-			"Like: " + strconv.Itoa(question.Like) + "\n"))
-	}
+// 	// debug
+// 	if *verbose {
+// 		w.Write([]byte("comment: " + question.Comment + "\n" +
+// 			"ID: " + question.ID + "\n" +
+// 			"Object: " + question.Object + "\n" +
+// 			"eventID: " + question.EventID + "\n" +
+// 			"programID: " + question.ProgramID + "\n" +
+// 			"username: " + question.Username + "\n" +
+// 			"Like: " + strconv.Itoa(question.Like) + "\n"))
+// 	}
 
-	dbmap, err := initDb()
-	defer dbmap.Db.Close()
+// 	dbmap, err := initDb()
+// 	defer dbmap.Db.Close()
 
-	// debug SQL Trace
-	if *verbose {
-		dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
-	}
+// 	// debug SQL Trace
+// 	if *verbose {
+// 		dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
+// 	}
 
-	if err != nil {
-		causeErr := errors.Cause(err)
-		fmt.Printf("%+v", causeErr)
-		return
-	}
+// 	if err != nil {
+// 		causeErr := errors.Cause(err)
+// 		fmt.Printf("%+v", causeErr)
+// 		return
+// 	}
 
-	/* データの挿入 */
-	err = dbmap.Insert(&question)
+// 	/* データの挿入 */
+// 	err = dbmap.Insert(&question)
 
-	if err != nil {
-		fmt.Printf("%+v", err)
-		return
-	}
+// 	if err != nil {
+// 		fmt.Printf("%+v", err)
+// 		return
+// 	}
 
-}
+// }
 
 // QuestionListHandler QuestionオブジェクトをRedisから取得する。存在しない場合はDBから取得し、Redisへ格納する
-func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
-	// URLに含まれている event_id を取得
-	vars := mux.Vars(r)
-	eventID := vars["event_id"]
-	start, _ := strconv.Atoi(vars["start"])
-	end, _ := strconv.Atoi(vars["end"])
-	sort := vars["sort"]
-	order := vars["order"]
+// func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
+// 	// URLに含まれている event_id を取得
+// 	vars := mux.Vars(r)
+// 	eventID := vars["event_id"]
+// 	start, _ := strconv.Atoi(vars["start"])
+// 	end, _ := strconv.Atoi(vars["end"])
+// 	sort := vars["sort"]
+// 	order := vars["order"]
 
-	questionList := getQuestionList(eventID, start, end, sort, order)
+// 	questionList := getQuestionList(eventID, start, end, sort, order)
 
-	/* JSONの整形 */
-	// QuestionのStructをjsonとして変換
-	jsonBytes, _ := json.Marshal(questionList)
+// 	/* JSONの整形 */
+// 	// QuestionのStructをjsonとして変換
+// 	jsonBytes, _ := json.Marshal(questionList)
 
-	// 整形用のバッファを作成し、整形を実行
-	out := new(bytes.Buffer)
-	// プリフィックスなし、スペース2つでインデント
-	json.Indent(out, jsonBytes, "", "  ")
+// 	// 整形用のバッファを作成し、整形を実行
+// 	out := new(bytes.Buffer)
+// 	// プリフィックスなし、スペース2つでインデント
+// 	json.Indent(out, jsonBytes, "", "  ")
 
-	w.Write([]byte(out.String()))
+// 	w.Write([]byte(out.String()))
 
 }
 
 // getQuestions RedisとDBからデータを取得する
-func getQuestionList(eventID string, start int, end int, sort string, order string) (questionList QuestionList) {
-	redisConn := getRedisConnection()
-	defer redisConn.Close()
+// func getQuestionList(eventID string, start int, end int, sort string, order string) (questionList QuestionList) {
+// 	redisConn := getRedisConnection()
+// 	defer redisConn.Close()
 
-	/* Redisにデータが存在するか確認する。 */
-	questionsKey, likeSortedKey, createdSortedKey := getQuestionsKey(eventID)
+// 	/* Redisにデータが存在するか確認する。 */
+// 	questionsKey, likeSortedKey, createdSortedKey := getQuestionsKey(eventID)
 
-	// 3種類のKeyが存在しない場合はデータが何かしら不足しているため、データの同期を行う
-	hasQuestionsKey := redisHasKey(redisConn, questionsKey)
-	hasLikeSortedKey := redisHasKey(redisConn, likeSortedKey)
-	hasCreatedSortedKey := redisHasKey(redisConn, createdSortedKey)
+// 	// 3種類のKeyが存在しない場合はデータが何かしら不足しているため、データの同期を行う
+// 	hasQuestionsKey := redisHasKey(redisConn, questionsKey)
+// 	hasLikeSortedKey := redisHasKey(redisConn, likeSortedKey)
+// 	hasCreatedSortedKey := redisHasKey(redisConn, createdSortedKey)
 
-	if !hasQuestionsKey || !hasLikeSortedKey || !hasCreatedSortedKey {
-		syncQuestion(eventID)
-	}
+// 	if !hasQuestionsKey || !hasLikeSortedKey || !hasCreatedSortedKey {
+// 		syncQuestion(eventID)
+// 	}
 
-	/* Redisからデータを取得する */
-	// redisのcommand
-	var redisCommand string
-	if order == "asc" {
-		redisCommand = "ZRANGE"
-	} else if order == "desc" {
-		redisCommand = "ZREVRANGE"
-	}
+// 	/* Redisからデータを取得する */
+// 	// redisのcommand
+// 	var redisCommand string
+// 	if order == "asc" {
+// 		redisCommand = "ZRANGE"
+// 	} else if order == "desc" {
+// 		redisCommand = "ZREVRANGE"
+// 	}
 
-	// sort redisのkey
-	var sortedkey string
-	if sort == "created_at" {
-		sortedkey = createdSortedKey
-	} else if sort == "like" {
-		sortedkey = likeSortedKey
-	}
+// 	// sort redisのkey
+// 	var sortedkey string
+// 	if sort == "created_at" {
+// 		sortedkey = createdSortedKey
+// 	} else if sort == "like" {
+// 		sortedkey = likeSortedKey
+// 	}
 
-	// debug
-	fmt.Println(redisCommand, sortedkey, start-1, end-1)
+// 	// debug
+// 	fmt.Println(redisCommand, sortedkey, start-1, end-1)
 
-	// API実行時に指定されたSortをRedisで実行
-	var uuidSlice []string
-	uuidSlice, _ = redis.Strings(redisConn.Do(redisCommand, sortedkey, start-1, end-1))
-	fmt.Println(uuidSlice)
+// 	// API実行時に指定されたSortをRedisで実行
+// 	var uuidSlice []string
+// 	uuidSlice, _ = redis.Strings(redisConn.Do(redisCommand, sortedkey, start-1, end-1))
+// 	fmt.Println(uuidSlice)
 
-	// RedisのDo関数は、Interface型のSliceしか受け付けないため、makeで生成 (String型のSliceはコンパイルエラー)
-	// Example) HMGET questions_jks1812 questionID questionID questionID questionID ...
-	var list = make([]interface{}, 0, 20)
-	list = append(list, questionsKey)
-	for _, str := range uuidSlice {
-		list = append(list, str)
-	}
+// 	// RedisのDo関数は、Interface型のSliceしか受け付けないため、makeで生成 (String型のSliceはコンパイルエラー)
+// 	// Example) HMGET questions_jks1812 questionID questionID questionID questionID ...
+// 	var list = make([]interface{}, 0, 20)
+// 	list = append(list, questionsKey)
+// 	for _, str := range uuidSlice {
+// 		list = append(list, str)
+// 	}
 
-	var bytesSlice [][]byte
-	bytesSlice, _ = redis.ByteSlices(redisConn.Do("HMGET", list...))
+// 	var bytesSlice [][]byte
+// 	bytesSlice, _ = redis.ByteSlices(redisConn.Do("HMGET", list...))
 
-	var questions []Question
-	for _, bytes := range bytesSlice {
-		q := new(Question)
-		json.Unmarshal(bytes, q)
-		questions = append(questions, *q)
-	}
+// 	var questions []Question
+// 	for _, bytes := range bytesSlice {
+// 		q := new(Question)
+// 		json.Unmarshal(bytes, q)
+// 		questions = append(questions, *q)
+// 	}
 
-	// DB or Redis から取得したデータのtimezoneをAsia/Tokyoと指定
-	locationTokyo, _ := time.LoadLocation("Asia/Tokyo")
-	for i := range questions {
-		questions[i].CreatedAt = questions[i].CreatedAt.In(locationTokyo)
-		questions[i].UpdatedAt = questions[i].UpdatedAt.In(locationTokyo)
-	}
+// 	// DB or Redis から取得したデータのtimezoneをAsia/Tokyoと指定
+// 	locationTokyo, _ := time.LoadLocation("Asia/Tokyo")
+// 	for i := range questions {
+// 		questions[i].CreatedAt = questions[i].CreatedAt.In(locationTokyo)
+// 		questions[i].UpdatedAt = questions[i].UpdatedAt.In(locationTokyo)
+// 	}
 
-	questionList.Data = questions
-	questionList.Object = "list"
-	questionList.Type = "question"
-	return questionList
-}
+// 	questionList.Data = questions
+// 	questionList.Object = "list"
+// 	questionList.Type = "question"
+// 	return questionList
+// }
 
 // syncQuestion DBとRedisのデータを同期する
 // RedisのデータがTTLなどで存在していない場合にsyncQuestionを使用する

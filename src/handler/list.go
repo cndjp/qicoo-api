@@ -1,0 +1,111 @@
+package handler
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/gomodule/redigo/redis"
+	"github.com/gorilla/mux"
+)
+
+// QuestionListHandler QuestionオブジェクトをRedisから取得する。存在しない場合はDBから取得し、Redisへ格納する
+func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
+	// URLに含まれている event_id を取得
+	vars := mux.Vars(r)
+	eventID := vars["event_id"]
+	start, _ := strconv.Atoi(vars["start"])
+	end, _ := strconv.Atoi(vars["end"])
+	sort := vars["sort"]
+	order := vars["order"]
+
+	questionList := getQuestionList(eventID, start, end, sort, order)
+
+	/* JSONの整形 */
+	// QuestionのStructをjsonとして変換
+	jsonBytes, _ := json.Marshal(questionList)
+
+	// 整形用のバッファを作成し、整形を実行
+	out := new(bytes.Buffer)
+	// プリフィックスなし、スペース2つでインデント
+	json.Indent(out, jsonBytes, "", "  ")
+
+	w.Write([]byte(out.String()))
+
+}
+
+// getQuestions RedisとDBからデータを取得する
+func getQuestionList(eventID string, start int, end int, sort string, order string) (questionList QuestionList) {
+	redisConn := getRedisConnection()
+	defer redisConn.Close()
+
+	/* Redisにデータが存在するか確認する。 */
+	questionsKey, likeSortedKey, createdSortedKey := getQuestionsKey(eventID)
+
+	// 3種類のKeyが存在しない場合はデータが何かしら不足しているため、データの同期を行う
+	hasQuestionsKey := redisHasKey(redisConn, questionsKey)
+	hasLikeSortedKey := redisHasKey(redisConn, likeSortedKey)
+	hasCreatedSortedKey := redisHasKey(redisConn, createdSortedKey)
+
+	if !hasQuestionsKey || !hasLikeSortedKey || !hasCreatedSortedKey {
+		syncQuestion(eventID)
+	}
+
+	/* Redisからデータを取得する */
+	// redisのcommand
+	var redisCommand string
+	if order == "asc" {
+		redisCommand = "ZRANGE"
+	} else if order == "desc" {
+		redisCommand = "ZREVRANGE"
+	}
+
+	// sort redisのkey
+	var sortedkey string
+	if sort == "created_at" {
+		sortedkey = createdSortedKey
+	} else if sort == "like" {
+		sortedkey = likeSortedKey
+	}
+
+	// debug
+	fmt.Println(redisCommand, sortedkey, start-1, end-1)
+
+	// API実行時に指定されたSortをRedisで実行
+	var uuidSlice []string
+	uuidSlice, _ = redis.Strings(redisConn.Do(redisCommand, sortedkey, start-1, end-1))
+	fmt.Println(uuidSlice)
+
+	// RedisのDo関数は、Interface型のSliceしか受け付けないため、makeで生成 (String型のSliceはコンパイルエラー)
+	// Example) HMGET questions_jks1812 questionID questionID questionID questionID ...
+	var list = make([]interface{}, 0, 20)
+	list = append(list, questionsKey)
+	for _, str := range uuidSlice {
+		list = append(list, str)
+	}
+
+	var bytesSlice [][]byte
+	bytesSlice, _ = redis.ByteSlices(redisConn.Do("HMGET", list...))
+
+	var questions []Question
+	for _, bytes := range bytesSlice {
+		q := new(Question)
+		json.Unmarshal(bytes, q)
+		questions = append(questions, *q)
+	}
+
+	// DB or Redis から取得したデータのtimezoneをAsia/Tokyoと指定
+	locationTokyo, _ := time.LoadLocation("Asia/Tokyo")
+	for i := range questions {
+		questions[i].CreatedAt = questions[i].CreatedAt.In(locationTokyo)
+		questions[i].UpdatedAt = questions[i].UpdatedAt.In(locationTokyo)
+	}
+
+	questionList.Data = questions
+	questionList.Object = "list"
+	questionList.Type = "question"
+	return questionList
+}
