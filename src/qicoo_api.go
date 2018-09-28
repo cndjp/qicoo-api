@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	_ "log"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -17,6 +17,16 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+	_ "github.com/sirupsen/logrus"
+	"gopkg.in/alecthomas/kingpin.v2"
+)
+
+var version string
+
+var (
+	app = kingpin.New("qicoo-api", "This application is Qicoo's Backend API")
+
+	verbose = app.Flag("verbose", "Run verbose mode").Default("false").Short('v').Bool()
 )
 
 // QuestionList Questionを複数格納するstruck
@@ -75,7 +85,7 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	question.CreatedAt = now
 
 	// debug
-	if *debug {
+	if *verbose {
 		w.Write([]byte("comment: " + question.Comment + "\n" +
 			"ID: " + question.ID + "\n" +
 			"Object: " + question.Object + "\n" +
@@ -89,7 +99,7 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	defer dbmap.Db.Close()
 
 	// debug SQL Trace
-	if *debug {
+	if *verbose {
 		dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
 	}
 
@@ -322,6 +332,14 @@ func initRedisPool() {
 // getRedisConnection
 func getRedisConnection() (conn redis.Conn) {
 	return redisPool.Get()
+}
+
+func init() {
+	app.HelpFlag.Short('h')
+	app.Version(fmt.Sprint("dntk's version: ", version))
+	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
+	// TODO
+	}
 }
 
 func main() {
