@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cndjp/qicoo-api/src/db"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -48,23 +49,19 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	question.CreatedAt = now
 
 	// debug
-	if *verbose {
-		w.Write([]byte("comment: " + question.Comment + "\n" +
-			"ID: " + question.ID + "\n" +
-			"Object: " + question.Object + "\n" +
-			"eventID: " + question.EventID + "\n" +
-			"programID: " + question.ProgramID + "\n" +
-			"username: " + question.Username + "\n" +
-			"Like: " + strconv.Itoa(question.Like) + "\n"))
-	}
+	w.Write([]byte("comment: " + question.Comment + "\n" +
+		"ID: " + question.ID + "\n" +
+		"Object: " + question.Object + "\n" +
+		"eventID: " + question.EventID + "\n" +
+		"programID: " + question.ProgramID + "\n" +
+		"username: " + question.Username + "\n" +
+		"Like: " + strconv.Itoa(question.Like) + "\n"))
 
-	dbmap, err := initDb()
+	dbmap, err := db.InitMySQLDB()
 	defer dbmap.Db.Close()
 
 	// debug SQL Trace
-	if *verbose {
-		dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
-	}
+	dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
 
 	if err != nil {
 		causeErr := errors.Cause(err)

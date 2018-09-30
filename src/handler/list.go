@@ -8,9 +8,31 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cndjp/qicoo-api/src/db"
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
+
+// QuestionList Questionを複数格納するstruck
+type QuestionList struct {
+	Object string     `json:"object"`
+	Type   string     `json:"type"`
+	Data   []Question `json:"data"`
+}
+
+// Question Questionオブジェクトを扱うためのstruct
+type Question struct {
+	ID        string    `json:"id" db:"id"`
+	Object    string    `json:"object" db:"object"`
+	Username  string    `json:"username" db:"username"`
+	EventID   string    `json:"event_id" db:"event_id"`
+	ProgramID string    `json:"program_id" db:"program_id"`
+	Comment   string    `json:"comment" db:"comment"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	Like      int       `json:"like" db:"like_count"`
+}
 
 // QuestionListHandler QuestionオブジェクトをRedisから取得する。存在しない場合はDBから取得し、Redisへ格納する
 func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +61,7 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 
 // getQuestions RedisとDBからデータを取得する
 func getQuestionList(eventID string, start int, end int, sort string, order string) (questionList QuestionList) {
-	redisConn := getRedisConnection()
+	redisConn := db.GetRedisConnection()
 	defer redisConn.Close()
 
 	/* Redisにデータが存在するか確認する。 */
@@ -108,4 +130,75 @@ func getQuestionList(eventID string, start int, end int, sort string, order stri
 	questionList.Object = "list"
 	questionList.Type = "question"
 	return questionList
+}
+
+func syncQuestion(eventID string) {
+	redisConnection := db.GetRedisConnection()
+	defer redisConnection.Close()
+
+	// DBからデータを取得
+	dbmap, err := db.InitMySQLDB()
+	dbmap.AddTableWithName(Question{}, "questions")
+	defer dbmap.Db.Close()
+
+	if err != nil {
+		causeErr := errors.Cause(err)
+		fmt.Printf("%+v", causeErr)
+		return
+	}
+
+	var questions []Question
+	_, err = dbmap.Select(&questions, "SELECT * FROM questions WHERE event_id = '"+eventID+"'")
+
+	if err != nil {
+		causeErr := errors.Cause(err)
+		fmt.Printf("%+v", causeErr)
+		return
+	}
+
+	// DB or Redis から取得したデータのtimezoneをUTCからAsia/Tokyoと指定
+	locationTokyo, err := time.LoadLocation("Asia/Tokyo")
+	for i := range questions {
+		questions[i].CreatedAt = questions[i].CreatedAt.In(locationTokyo)
+		questions[i].UpdatedAt = questions[i].UpdatedAt.In(locationTokyo)
+	}
+
+	//Redisで利用するKeyを取得
+	questionsKey, likeSortedKey, createdSortedKey := getQuestionsKey(eventID)
+
+	//DBのデータをRedisに同期する。
+	for _, question := range questions {
+		//HashMap SerializedされたJSONデータを格納
+		serializedJSON, _ := json.Marshal(question)
+		fmt.Println(questionsKey, " ", question.ID, " ", serializedJSON)
+		redisConnection.Do("HSET", questionsKey, question.ID, serializedJSON)
+
+		//SortedSet(Like)
+		redisConnection.Do("ZADD", likeSortedKey, question.Like, question.ID)
+
+		//SortedSet(CreatedAt)
+		redisConnection.Do("ZADD", createdSortedKey, question.CreatedAt.Unix(), question.ID)
+	}
+}
+
+func getQuestionsKey(eventID string) (questionsKey string, likeSortedKey string, createdSortedKey string) {
+	questionsKey = "questions_" + eventID
+	likeSortedKey = questionsKey + "_like"
+	createdSortedKey = questionsKey + "_created"
+
+	return questionsKey, likeSortedKey, createdSortedKey
+}
+
+// redisHasKey
+func redisHasKey(conn redis.Conn, key string) bool {
+	hasInt, _ := redis.Int(conn.Do("EXISTS", key))
+
+	var hasKey bool
+	if hasInt == 1 {
+		hasKey = true
+	} else {
+		hasKey = false
+	}
+
+	return hasKey
 }

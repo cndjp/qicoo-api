@@ -1,22 +1,14 @@
 package main
 
 import (
-	"bytes"
-	"database/sql"
-	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
-	"strconv"
-	"time"
 
-	"github.com/go-gorp/gorp"
+	"github.com/cndjp/qicoo-api/src/db"
+	"github.com/cndjp/qicoo-api/src/handler"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/gomodule/redigo/redis"
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
 	_ "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
@@ -29,27 +21,27 @@ var (
 	verbose = app.Flag("verbose", "Run verbose mode").Default("false").Short('v').Bool()
 )
 
-// QuestionList Questionを複数格納するstruck
-type QuestionList struct {
-	Object string     `json:"object"`
-	Type   string     `json:"type"`
-	Data   []Question `json:"data"`
-}
+// // QuestionList Questionを複数格納するstruck
+// type QuestionList struct {
+// 	Object string     `json:"object"`
+// 	Type   string     `json:"type"`
+// 	Data   []Question `json:"data"`
+// }
 
-// Question Questionオブジェクトを扱うためのstruct
-type Question struct {
-	ID        string    `json:"id" db:"id"`
-	Object    string    `json:"object" db:"object"`
-	Username  string    `json:"username" db:"username"`
-	EventID   string    `json:"event_id" db:"event_id"`
-	ProgramID string    `json:"program_id" db:"program_id"`
-	Comment   string    `json:"comment" db:"comment"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
-	Like      int       `json:"like" db:"like_count"`
-}
+// // Question Questionオブジェクトを扱うためのstruct
+// type Question struct {
+// 	ID        string    `json:"id" db:"id"`
+// 	Object    string    `json:"object" db:"object"`
+// 	Username  string    `json:"username" db:"username"`
+// 	EventID   string    `json:"event_id" db:"event_id"`
+// 	ProgramID string    `json:"program_id" db:"program_id"`
+// 	Comment   string    `json:"comment" db:"comment"`
+// 	CreatedAt time.Time `json:"created_at" db:"created_at"`
+// 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+// 	Like      int       `json:"like" db:"like_count"`
+// }
 
-var redisPool *redis.Pool
+// var redisPool *redis.Pool
 
 // QuestionCreateHandler QuestionオブジェクトをDBとRedisに書き込む
 // func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
@@ -142,8 +134,6 @@ var redisPool *redis.Pool
 
 // 	w.Write([]byte(out.String()))
 
-}
-
 // getQuestions RedisとDBからデータを取得する
 // func getQuestionList(eventID string, start int, end int, sort string, order string) (questionList QuestionList) {
 // 	redisConn := getRedisConnection()
@@ -220,119 +210,119 @@ var redisPool *redis.Pool
 // syncQuestion DBとRedisのデータを同期する
 // RedisのデータがTTLなどで存在していない場合にsyncQuestionを使用する
 // TODO: RedisデータのTTL
-func syncQuestion(eventID string) {
-	redisConnection := getRedisConnection()
-	defer redisConnection.Close()
+// func syncQuestion(eventID string) {
+// 	redisConnection := getRedisConnection()
+// 	defer redisConnection.Close()
 
-	// DBからデータを取得
-	dbmap, err := initDb()
-	defer dbmap.Db.Close()
+// 	// DBからデータを取得
+// 	dbmap, err := initDb()
+// 	defer dbmap.Db.Close()
 
-	if err != nil {
-		causeErr := errors.Cause(err)
-		fmt.Printf("%+v", causeErr)
-		return
-	}
+// 	if err != nil {
+// 		causeErr := errors.Cause(err)
+// 		fmt.Printf("%+v", causeErr)
+// 		return
+// 	}
 
-	var questions []Question
-	_, err = dbmap.Select(&questions, "SELECT * FROM questions WHERE event_id = '"+eventID+"'")
+// 	var questions []Question
+// 	_, err = dbmap.Select(&questions, "SELECT * FROM questions WHERE event_id = '"+eventID+"'")
 
-	if err != nil {
-		causeErr := errors.Cause(err)
-		fmt.Printf("%+v", causeErr)
-		return
-	}
+// 	if err != nil {
+// 		causeErr := errors.Cause(err)
+// 		fmt.Printf("%+v", causeErr)
+// 		return
+// 	}
 
-	// DB or Redis から取得したデータのtimezoneをUTCからAsia/Tokyoと指定
-	locationTokyo, err := time.LoadLocation("Asia/Tokyo")
-	for i := range questions {
-		questions[i].CreatedAt = questions[i].CreatedAt.In(locationTokyo)
-		questions[i].UpdatedAt = questions[i].UpdatedAt.In(locationTokyo)
-	}
+// 	// DB or Redis から取得したデータのtimezoneをUTCからAsia/Tokyoと指定
+// 	locationTokyo, err := time.LoadLocation("Asia/Tokyo")
+// 	for i := range questions {
+// 		questions[i].CreatedAt = questions[i].CreatedAt.In(locationTokyo)
+// 		questions[i].UpdatedAt = questions[i].UpdatedAt.In(locationTokyo)
+// 	}
 
-	//Redisで利用するKeyを取得
-	questionsKey, likeSortedKey, createdSortedKey := getQuestionsKey(eventID)
+// 	//Redisで利用するKeyを取得
+// 	questionsKey, likeSortedKey, createdSortedKey := getQuestionsKey(eventID)
 
-	//DBのデータをRedisに同期する。
-	for _, question := range questions {
-		//HashMap SerializedされたJSONデータを格納
-		serializedJSON, _ := json.Marshal(question)
-		fmt.Println(questionsKey, " ", question.ID, " ", serializedJSON)
-		redisConnection.Do("HSET", questionsKey, question.ID, serializedJSON)
+// 	//DBのデータをRedisに同期する。
+// 	for _, question := range questions {
+// 		//HashMap SerializedされたJSONデータを格納
+// 		serializedJSON, _ := json.Marshal(question)
+// 		fmt.Println(questionsKey, " ", question.ID, " ", serializedJSON)
+// 		redisConnection.Do("HSET", questionsKey, question.ID, serializedJSON)
 
-		//SortedSet(Like)
-		redisConnection.Do("ZADD", likeSortedKey, question.Like, question.ID)
+// 		//SortedSet(Like)
+// 		redisConnection.Do("ZADD", likeSortedKey, question.Like, question.ID)
 
-		//SortedSet(CreatedAt)
-		redisConnection.Do("ZADD", createdSortedKey, question.CreatedAt.Unix(), question.ID)
-	}
-}
+// 		//SortedSet(CreatedAt)
+// 		redisConnection.Do("ZADD", createdSortedKey, question.CreatedAt.Unix(), question.ID)
+// 	}
+// }
 
 // getQuestionsKey Redisで使用するQuestionsを格納するkeyを取得
-func getQuestionsKey(eventID string) (questionsKey string, likeSortedKey string, createdSortedKey string) {
-	questionsKey = "questions_" + eventID
-	likeSortedKey = questionsKey + "_like"
-	createdSortedKey = questionsKey + "_created"
+// func getQuestionsKey(eventID string) (questionsKey string, likeSortedKey string, createdSortedKey string) {
+// 	questionsKey = "questions_" + eventID
+// 	likeSortedKey = questionsKey + "_like"
+// 	createdSortedKey = questionsKey + "_created"
 
-	return questionsKey, likeSortedKey, createdSortedKey
-}
+// 	return questionsKey, likeSortedKey, createdSortedKey
+// }
 
-// redisHasKey
-func redisHasKey(conn redis.Conn, key string) bool {
-	hasInt, _ := redis.Int(conn.Do("EXISTS", key))
+// // redisHasKey
+// func redisHasKey(conn redis.Conn, key string) bool {
+// 	hasInt, _ := redis.Int(conn.Do("EXISTS", key))
 
-	var hasKey bool
-	if hasInt == 1 {
-		hasKey = true
-	} else {
-		hasKey = false
-	}
+// 	var hasKey bool
+// 	if hasInt == 1 {
+// 		hasKey = true
+// 	} else {
+// 		hasKey = false
+// 	}
 
-	return hasKey
-}
+// 	return hasKey
+// }
 
 // initDb 環境変数を利用しDBへのConnectionを取得する(sqldriverでconnection poolが実装されているらしい)
-func initDb() (dbmap *gorp.DbMap, err error) {
-	dbms := "mysql"
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	protocol := "tcp(" + os.Getenv("DB_URL") + ")"
-	dbname := "qicoo"
-	option := "?parseTime=true"
+// func initDb() (dbmap *gorp.DbMap, err error) {
+// 	dbms := "mysql"
+// 	user := os.Getenv("DB_USER")
+// 	password := os.Getenv("DB_PASSWORD")
+// 	protocol := "tcp(" + os.Getenv("DB_URL") + ")"
+// 	dbname := "qicoo"
+// 	option := "?parseTime=true"
 
-	connect := user + ":" + password + "@" + protocol + "/" + dbname + option
-	db, err := sql.Open(dbms, connect)
+// 	connect := user + ":" + password + "@" + protocol + "/" + dbname + option
+// 	db, err := sql.Open(dbms, connect)
 
-	if err != nil {
-		return nil, errors.Wrap(err, "error on initDb()")
-	}
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, "error on initDb()")
+// 	}
 
-	// structの構造体とDBのTableを紐づける
-	dbmap = &gorp.DbMap{Db: db, Dialect: gorp.MySQLDialect{}}
-	dbmap.AddTableWithName(Question{}, "questions")
+// 	// structの構造体とDBのTableを紐づける
+// 	dbmap = &gorp.DbMap{Db: db, Dialect: gorp.MySQLDialect{}}
+// 	dbmap.AddTableWithName(Question{}, "questions")
 
-	return dbmap, nil
-}
+// 	return dbmap, nil
+// }
 
-// initRedisPool RedisConnectionPoolからconnectionを取り出す
-func initRedisPool() {
-	url := os.Getenv("REDIS_URL")
+// // initRedisPool RedisConnectionPoolからconnectionを取り出す
+// func initRedisPool() {
+// 	url := os.Getenv("REDIS_URL")
 
-	// idle connection limit:3    active connection limit:1000
-	pool := &redis.Pool{
-		MaxIdle:     3,
-		MaxActive:   1000,
-		IdleTimeout: 240 * time.Second,
-		Dial:        func() (redis.Conn, error) { return redis.Dial("tcp", url) },
-	}
+// 	// idle connection limit:3    active connection limit:1000
+// 	pool := &redis.Pool{
+// 		MaxIdle:     3,
+// 		MaxActive:   1000,
+// 		IdleTimeout: 240 * time.Second,
+// 		Dial:        func() (redis.Conn, error) { return redis.Dial("tcp", url) },
+// 	}
 
-	redisPool = pool
-}
+// 	redisPool = pool
+// }
 
-// getRedisConnection
-func getRedisConnection() (conn redis.Conn) {
-	return redisPool.Get()
-}
+// // getRedisConnection
+// func getRedisConnection() (conn redis.Conn) {
+// 	return redisPool.Get()
+// }
 
 func init() {
 	app.HelpFlag.Short('h')
@@ -346,12 +336,12 @@ func main() {
 	r := mux.NewRouter()
 
 	// 初期設定
-	initRedisPool()
+	db.InitRedisPool()
 
 	// route QuestionCreate
 	r.Path("/v1/{event_id:[a-zA-Z0-9-_]+}/questions").
 		Methods("POST").
-		HandlerFunc(QuestionCreateHandler)
+		HandlerFunc(handler.QuestionCreateHandler)
 
 	// route QuestionList
 	r.Path("/v1/{event_id:[a-zA-Z0-9-_]+}/questions").
@@ -360,7 +350,7 @@ func main() {
 		Queries("end", "{end:[0-9]+}").
 		Queries("sort", "{sort:[a-zA-Z0-9-_]+}").
 		Queries("order", "{order:[a-zA-Z0-9-_]+}").
-		HandlerFunc(QuestionListHandler)
+		HandlerFunc(handler.QuestionListHandler)
 
 	http.ListenAndServe(":8080", r)
 }
