@@ -15,7 +15,7 @@ type DBMap struct {
 }
 
 func envLoad() {
-	err := godotenv.Load("./.env")
+	err := godotenv.Load("../../.env")
 	if err != nil {
 		logrus.Fatal("Error loading .env file")
 

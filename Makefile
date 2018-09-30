@@ -7,7 +7,6 @@ TARGET	 := bin/$(NAME)
 DIST_DIRS := find * -type d -exec
 SRCS	:= $(shell find . -type f -name '*.go')
 LDFLAGS := -ldflags="-s -X \"main.version=$(VERSION)\""
-OPTS :=-a -installsuffix cgo
 
 $(TARGET): $(SRCS)
 	golint src/${NAME}.go
