@@ -4,10 +4,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/alecthomas/template"
-  packages = [
-    ".",
-    "parse"
-  ]
+  packages = [".","parse"]
   revision = "a0175ee3bccc567396460bf5acd36800cb10c49c"
 
 [[projects]]
@@ -30,10 +27,7 @@
 
 [[projects]]
   name = "github.com/gomodule/redigo"
-  packages = [
-    "internal",
-    "redis"
-  ]
+  packages = ["internal","redis"]
   revision = "9c11da706d9b7902c6da69c592f75637793fe121"
   version = "v2.0.0"
 
@@ -54,6 +48,12 @@
   packages = ["."]
   revision = "e3702bed27f0d39777b0b37b664b6280e8ef8fbf"
   version = "v1.6.2"
+
+[[projects]]
+  name = "github.com/joho/godotenv"
+  packages = ["."]
+  revision = "23d116af351c84513e1946b527c88823e476be13"
+  version = "v1.3.0"
 
 [[projects]]
   branch = "master"
@@ -82,11 +82,8 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = [
-    "unix",
-    "windows"
-  ]
-  revision = "dad3d9fb7b6e83d0f9ac8f54670f6334c3a287b4"
+  packages = ["unix","windows"]
+  revision = "e4b3c5e9061176387e7cea65e4dc5853801f3fb7"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -103,6 +100,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "576b7b94b80e94a21d4b5cb4308743341e8ac61b12f4277cb56d65a6f6e5fc03"
+  inputs-digest = "dfff527cf1342d9e96426b3ae6f4aaf0025024abb4e7530b18f2f6cd66a29bb4"
   solver-name = "gps-cdcl"
   solver-version = 1
