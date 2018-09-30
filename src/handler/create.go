@@ -56,11 +56,15 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 		"username: " + question.Username + "\n" +
 		"Like: " + strconv.Itoa(question.Like) + "\n"))
 
-	dbmap, err := sql.InitMySQLDB()
-	defer dbmap.Db.Close()
+	var m sql.DBMap
+	//dbmap, err := m.InitMySQLDB()
+	err := m.InitMySQLDB()
+	//defer dbmap.Db.Close()
+	defer m.Map.Db.Close()
 
 	// debug SQL Trace
-	dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
+	//dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
+	m.Map.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
 
 	if err != nil {
 		logrus.Fatal(err)
@@ -68,7 +72,8 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	/* データの挿入 */
-	err = dbmap.Insert(&question)
+	//err = dbmap.Insert(&question)
+	err = m.Map.Insert(&question)
 
 	if err != nil {
 		logrus.Fatal(err)

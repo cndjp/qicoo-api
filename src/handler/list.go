@@ -163,9 +163,13 @@ func (p *RedisPool) syncQuestion(eventID string) {
 	defer redisConnection.Close()
 
 	// DBからデータを取得
-	dbmap, err := sql.InitMySQLDB()
-	dbmap.AddTableWithName(Question{}, "questions")
-	defer dbmap.Db.Close()
+	var m sql.DBMap
+	//dbmap, err := sql.InitMySQLDB()
+	err := m.InitMySQLDB()
+	//dbmap.AddTableWithName(Question{}, "questions")
+	m.Map.AddTableWithName(Question{}, "questions")
+	//defer dbmap.Db.Close()
+	defer m.Map.Db.Close()
 
 	if err != nil {
 		causeErr := errors.Cause(err)
@@ -174,7 +178,8 @@ func (p *RedisPool) syncQuestion(eventID string) {
 	}
 
 	var questions []Question
-	_, err = dbmap.Select(&questions, "SELECT * FROM questions WHERE event_id = '"+eventID+"'")
+	//_, err = dbmap.Select(&questions, "SELECT * FROM questions WHERE event_id = '"+eventID+"'")
+	_, err = m.Map.Select(&questions, "SELECT * FROM questions WHERE event_id = '"+eventID+"'")
 
 	if err != nil {
 		causeErr := errors.Cause(err)
