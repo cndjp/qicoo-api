@@ -5,11 +5,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/cndjp/qicoo-api/src/db"
 	"github.com/cndjp/qicoo-api/src/handler"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
-	_ "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -33,7 +31,8 @@ func main() {
 	r := mux.NewRouter()
 
 	// 初期設定
-	db.InitRedisPool()
+	var p handler.RedisPool
+	p.InitRedisPool()
 
 	// route QuestionCreate
 	r.Path("/v1/{event_id:[a-zA-Z0-9-_]+}/questions").
@@ -47,7 +46,7 @@ func main() {
 		Queries("end", "{end:[0-9]+}").
 		Queries("sort", "{sort:[a-zA-Z0-9-_]+}").
 		Queries("order", "{order:[a-zA-Z0-9-_]+}").
-		HandlerFunc(handler.QuestionListHandler)
+		HandlerFunc(p.QuestionListHandler)
 
 	http.ListenAndServe(":8080", r)
 }

@@ -2,17 +2,16 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/cndjp/qicoo-api/src/db"
+	"github.com/cndjp/qicoo-api/src/sql"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // QuestionCreateHandler QuestionオブジェクトをDBとRedisに書き込む
@@ -57,15 +56,14 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 		"username: " + question.Username + "\n" +
 		"Like: " + strconv.Itoa(question.Like) + "\n"))
 
-	dbmap, err := db.InitMySQLDB()
+	dbmap, err := sql.InitMySQLDB()
 	defer dbmap.Db.Close()
 
 	// debug SQL Trace
 	dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
 
 	if err != nil {
-		causeErr := errors.Cause(err)
-		fmt.Printf("%+v", causeErr)
+		logrus.Fatal(err)
 		return
 	}
 
@@ -73,7 +71,7 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	err = dbmap.Insert(&question)
 
 	if err != nil {
-		fmt.Printf("%+v", err)
+		logrus.Fatal(err)
 		return
 	}
 

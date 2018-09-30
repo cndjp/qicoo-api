@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
-	"github.com/cndjp/qicoo-api/src/db"
+	"github.com/cndjp/qicoo-api/src/sql"
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -34,8 +35,33 @@ type Question struct {
 	Like      int       `json:"like" db:"like_count"`
 }
 
+type RedisPool struct {
+	Pool *redis.Pool
+}
+
+// InitRedisPool RedisConnectionPoolからconnectionを取り出す
+func (p *RedisPool) InitRedisPool() {
+	url := os.Getenv("REDIS_URL")
+
+	// idle connection limit:3    active connection limit:1000
+	p.Pool = &redis.Pool{
+		MaxIdle:     3,
+		MaxActive:   1000,
+		IdleTimeout: 240 * time.Second,
+		Dial:        func() (redis.Conn, error) { return redis.Dial("tcp", url) },
+	}
+
+	//RedisPool = pool
+
+}
+
+// GetRedisConnection
+func (p *RedisPool) getRedisConnection() (conn redis.Conn) {
+	return p.Pool.Get()
+}
+
 // QuestionListHandler QuestionオブジェクトをRedisから取得する。存在しない場合はDBから取得し、Redisへ格納する
-func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
+func (p *RedisPool) QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 	// URLに含まれている event_id を取得
 	vars := mux.Vars(r)
 	eventID := vars["event_id"]
@@ -44,7 +70,7 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 	sort := vars["sort"]
 	order := vars["order"]
 
-	questionList := getQuestionList(eventID, start, end, sort, order)
+	questionList := p.getQuestionList(eventID, start, end, sort, order)
 
 	/* JSONの整形 */
 	// QuestionのStructをjsonとして変換
@@ -60,8 +86,8 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // getQuestions RedisとDBからデータを取得する
-func getQuestionList(eventID string, start int, end int, sort string, order string) (questionList QuestionList) {
-	redisConn := db.GetRedisConnection()
+func (p *RedisPool) getQuestionList(eventID string, start int, end int, sort string, order string) (questionList QuestionList) {
+	redisConn := p.getRedisConnection()
 	defer redisConn.Close()
 
 	/* Redisにデータが存在するか確認する。 */
@@ -73,7 +99,7 @@ func getQuestionList(eventID string, start int, end int, sort string, order stri
 	hasCreatedSortedKey := redisHasKey(redisConn, createdSortedKey)
 
 	if !hasQuestionsKey || !hasLikeSortedKey || !hasCreatedSortedKey {
-		syncQuestion(eventID)
+		p.syncQuestion(eventID)
 	}
 
 	/* Redisからデータを取得する */
@@ -132,12 +158,12 @@ func getQuestionList(eventID string, start int, end int, sort string, order stri
 	return questionList
 }
 
-func syncQuestion(eventID string) {
-	redisConnection := db.GetRedisConnection()
+func (p *RedisPool) syncQuestion(eventID string) {
+	redisConnection := p.getRedisConnection()
 	defer redisConnection.Close()
 
 	// DBからデータを取得
-	dbmap, err := db.InitMySQLDB()
+	dbmap, err := sql.InitMySQLDB()
 	dbmap.AddTableWithName(Question{}, "questions")
 	defer dbmap.Db.Close()
 
