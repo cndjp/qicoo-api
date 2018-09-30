@@ -30,9 +30,8 @@ func init() {
 func main() {
 	r := mux.NewRouter()
 
-	// 初期設定
-	var p handler.RedisPool
-	p.InitRedisPool()
+	// RedisPoolの初期化初期設定
+	p = handler.NewRedisPool()
 
 	// route QuestionCreate
 	r.Path("/v1/{event_id:[a-zA-Z0-9-_]+}/questions").

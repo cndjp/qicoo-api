@@ -39,16 +39,18 @@ type RedisPool struct {
 	Pool *redis.Pool
 }
 
-// InitRedisPool RedisConnectionPoolからconnectionを取り出す
-func (p *RedisPool) InitRedisPool() {
+// NewRedisPool RedisConnectionPoolからconnectionを取り出す
+func NewRedisPool() *RedisPool {
 	url := os.Getenv("REDIS_URL")
 
 	// idle connection limit:3    active connection limit:1000
-	p.Pool = &redis.Pool{
-		MaxIdle:     3,
-		MaxActive:   1000,
-		IdleTimeout: 240 * time.Second,
-		Dial:        func() (redis.Conn, error) { return redis.Dial("tcp", url) },
+	return &RedisPool{
+		Pool: &redis.Pool{
+			MaxIdle:     3,
+			MaxActive:   1000,
+			IdleTimeout: 240 * time.Second,
+			Dial:        func() (redis.Conn, error) { return redis.Dial("tcp", url) },
+		},
 	}
 
 	//RedisPool = pool
