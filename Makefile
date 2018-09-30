@@ -1,5 +1,10 @@
-include .env
-export $(shell sed 's/=.*//' .env)
+DOTENV := ./.env
+DOTENV_EXISTS := $(shell [ -f $(DOTENV) ] && echo 0 || echo 1 )
+
+ifeq ($(DOTENV_EXISTS), 0)
+	include $(DOTENV)
+	export $(shell sed 's/=.*//' .env)
+endif
 
 GO15VENDOREXPERIMENT = 1
 OSXCROSS_NO_INCLUDE_PATH_WARNINGS = 1
@@ -14,6 +19,19 @@ LDFLAGS := -ldflags="-s -X \"main.version=$(VERSION)\""
 $(TARGET): $(SRCS)
 	golint src/${NAME}.go
 	go build $(OPTS) $(LDFLAGS) -o bin/$(NAME) src/${NAME}.go
+
+.PHONY : create-dotenv
+create-dotenv:
+	@if [ ! -f $(DOTENV) ]; \
+		then\
+		echo 'Create .env file.' ;\
+		echo 'DB_USER=root' >> ./.env ;\
+		echo 'DB_PASSWORD=root' >> ./.env ;\
+		echo 'DB_URL=localhost' >> ./.env ;\
+		echo 'REDIS_URL=localhost' >> ./.env ;\
+	else \
+		echo Not Work. ;\
+	fi
 
 .PHONY: install
 install:
