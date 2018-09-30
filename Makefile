@@ -10,7 +10,7 @@ GO15VENDOREXPERIMENT = 1
 OSXCROSS_NO_INCLUDE_PATH_WARNINGS = 1
 VERSION = v0.0.1
 
-NAME	 := qicoo_api
+NAME	 := qicoo-api
 TARGET	 := bin/$(NAME)
 DIST_DIRS := find * -type d -exec
 SRCS	:= $(shell find . -type f -name '*.go')
