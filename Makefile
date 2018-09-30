@@ -1,3 +1,6 @@
+include .env
+export $(shell sed 's/=.*//' .env)
+
 GO15VENDOREXPERIMENT = 1
 OSXCROSS_NO_INCLUDE_PATH_WARNINGS = 1
 VERSION = v0.0.1
