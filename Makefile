@@ -27,8 +27,8 @@ create-dotenv:
 		echo 'Create .env file.' ;\
 		echo 'DB_USER=root' >> ./.env ;\
 		echo 'DB_PASSWORD=root' >> ./.env ;\
-		echo 'DB_URL=localhost' >> ./.env ;\
-		echo 'REDIS_URL=localhost' >> ./.env ;\
+		echo 'DB_URL=localhost:3306' >> ./.env ;\
+		echo 'REDIS_URL=localhost:6379' >> ./.env ;\
 	else \
 		echo Not Work. ;\
 	fi
