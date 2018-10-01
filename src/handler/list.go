@@ -10,9 +10,11 @@ import (
 	"time"
 
 	"github.com/cndjp/qicoo-api/src/sql"
+	"github.com/go-gorp/gorp"
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // QuestionList Questionを複数格納するstruck
@@ -165,13 +167,22 @@ func (p *RedisPool) syncQuestion(eventID string) {
 	defer redisConnection.Close()
 
 	// DBからデータを取得
-	var m sql.DBMap
+	//var m sql.DBMap
 	//dbmap, err := sql.InitMySQLDB()
-	err := m.InitMySQLDB()
+	//err := m.InitMySQLDB()
+	var m *gorp.DbMap
+	db, err := sql.InitMySQL()
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	m = sql.MappingDBandTable(db)
+
 	//dbmap.AddTableWithName(Question{}, "questions")
-	m.Map.AddTableWithName(Question{}, "questions")
+	m.AddTableWithName(Question{}, "questions")
 	//defer dbmap.Db.Close()
-	defer m.Map.Db.Close()
+	defer m.Db.Close()
 
 	if err != nil {
 		causeErr := errors.Cause(err)
