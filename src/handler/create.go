@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cndjp/qicoo-api/src/sql"
+	"github.com/go-gorp/gorp"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
@@ -56,15 +57,19 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 		"username: " + question.Username + "\n" +
 		"Like: " + strconv.Itoa(question.Like) + "\n"))
 
-	var m sql.DBMap
-	//dbmap, err := m.InitMySQLDB()
-	err := m.MappingDBandTable()
-	//defer dbmap.Db.Close()
-	defer m.Map.Db.Close()
+	var m *gorp.DbMap
+	db, err := sql.InitMySQL()
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	m = sql.MappingDBandTable(db)
+	defer m.Db.Close()
 
 	// debug SQL Trace
 	//dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
-	m.Map.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
+	m.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
 
 	if err != nil {
 		logrus.Fatal(err)
