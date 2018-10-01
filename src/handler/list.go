@@ -12,6 +12,7 @@ import (
 	"github.com/cndjp/qicoo-api/src/sql"
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 	"github.com/pkg/errors"
 )
 
@@ -67,8 +68,14 @@ func (p *RedisPool) QuestionListHandler(w http.ResponseWriter, r *http.Request) 
 	// URLに含まれている event_id を取得
 	vars := mux.Vars(r)
 	eventID := vars["event_id"]
-	start, _ := strconv.Atoi(vars["start"])
-	end, _ := strconv.Atoi(vars["end"])
+	start, err := strconv.Atoi(vars["start"])
+	if err != nil {
+		logrus.Error(err)
+	}
+	end, err := strconv.Atoi(vars["end"])
+	if err != nil {
+                logrus.Error(err)
+        }
 	sort := vars["sort"]
 	order := vars["order"]
 

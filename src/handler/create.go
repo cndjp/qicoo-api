@@ -59,6 +59,7 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	var m sql.DBMap
 	//dbmap, err := m.InitMySQLDB()
 	err := m.InitMySQLDB()
+	m.Map.AddTableWithName(Question{}, "questions")
 	//defer dbmap.Db.Close()
 	defer m.Map.Db.Close()
 
