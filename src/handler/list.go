@@ -13,7 +13,6 @@ import (
 	"github.com/go-gorp/gorp"
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -76,8 +75,8 @@ func (p *RedisPool) QuestionListHandler(w http.ResponseWriter, r *http.Request) 
 	}
 	end, err := strconv.Atoi(vars["end"])
 	if err != nil {
-                logrus.Error(err)
-        }
+		logrus.Error(err)
+	}
 	sort := vars["sort"]
 	order := vars["order"]
 
@@ -87,8 +86,8 @@ func (p *RedisPool) QuestionListHandler(w http.ResponseWriter, r *http.Request) 
 	// QuestionのStructをjsonとして変換
 	jsonBytes, err := json.Marshal(questionList)
 	if err != nil {
-                logrus.Error(err)
-        }
+		logrus.Error(err)
+	}
 
 	// 整形用のバッファを作成し、整形を実行
 	out := new(bytes.Buffer)
@@ -140,8 +139,8 @@ func (p *RedisPool) getQuestionList(eventID string, start int, end int, sort str
 	var uuidSlice []string
 	uuidSlice, err := redis.Strings(redisConn.Do(redisCommand, sortedkey, start-1, end-1))
 	if err != nil {
-                logrus.Error(err)
-        }
+		logrus.Error(err)
+	}
 
 	for _, u := range uuidSlice {
 		fmt.Println(u)
@@ -168,8 +167,8 @@ func (p *RedisPool) getQuestionList(eventID string, start int, end int, sort str
 	// DB or Redis から取得したデータのtimezoneをAsia/Tokyoと指定
 	locationTokyo, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
-                logrus.Fatal(err)
-        }
+		logrus.Fatal(err)
+	}
 
 	for i := range questions {
 		questions[i].CreatedAt = questions[i].CreatedAt.In(locationTokyo)
@@ -212,7 +211,7 @@ func (p *RedisPool) syncQuestion(eventID string) {
 
 	var questions []Question
 	//_, err = dbmap.Select(&questions, "SELECT * FROM questions WHERE event_id = '"+eventID+"'")
-	_, err = m.Map.Select(&questions, "SELECT * FROM questions WHERE event_id = '"+eventID+"'")
+	_, err = m.Select(&questions, "SELECT * FROM questions WHERE event_id = '"+eventID+"'")
 
 	if err != nil {
 		causeErr := errors.Cause(err)
