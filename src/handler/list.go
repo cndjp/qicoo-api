@@ -13,6 +13,7 @@ import (
 	"github.com/go-gorp/gorp"
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -69,8 +70,14 @@ func (p *RedisPool) QuestionListHandler(w http.ResponseWriter, r *http.Request) 
 	// URLに含まれている event_id を取得
 	vars := mux.Vars(r)
 	eventID := vars["event_id"]
-	start, _ := strconv.Atoi(vars["start"])
-	end, _ := strconv.Atoi(vars["end"])
+	start, err := strconv.Atoi(vars["start"])
+	if err != nil {
+		logrus.Error(err)
+	}
+	end, err := strconv.Atoi(vars["end"])
+	if err != nil {
+                logrus.Error(err)
+        }
 	sort := vars["sort"]
 	order := vars["order"]
 
@@ -78,7 +85,10 @@ func (p *RedisPool) QuestionListHandler(w http.ResponseWriter, r *http.Request) 
 
 	/* JSONの整形 */
 	// QuestionのStructをjsonとして変換
-	jsonBytes, _ := json.Marshal(questionList)
+	jsonBytes, err := json.Marshal(questionList)
+	if err != nil {
+                logrus.Error(err)
+        }
 
 	// 整形用のバッファを作成し、整形を実行
 	out := new(bytes.Buffer)
@@ -128,8 +138,14 @@ func (p *RedisPool) getQuestionList(eventID string, start int, end int, sort str
 
 	// API実行時に指定されたSortをRedisで実行
 	var uuidSlice []string
-	uuidSlice, _ = redis.Strings(redisConn.Do(redisCommand, sortedkey, start-1, end-1))
-	fmt.Println(uuidSlice)
+	uuidSlice, err := redis.Strings(redisConn.Do(redisCommand, sortedkey, start-1, end-1))
+	if err != nil {
+                logrus.Error(err)
+        }
+
+	for _, u := range uuidSlice {
+		fmt.Println(u)
+	}
 
 	// RedisのDo関数は、Interface型のSliceしか受け付けないため、makeで生成 (String型のSliceはコンパイルエラー)
 	// Example) HMGET questions_jks1812 questionID questionID questionID questionID ...
@@ -150,7 +166,11 @@ func (p *RedisPool) getQuestionList(eventID string, start int, end int, sort str
 	}
 
 	// DB or Redis から取得したデータのtimezoneをAsia/Tokyoと指定
-	locationTokyo, _ := time.LoadLocation("Asia/Tokyo")
+	locationTokyo, err := time.LoadLocation("Asia/Tokyo")
+	if err != nil {
+                logrus.Fatal(err)
+        }
+
 	for i := range questions {
 		questions[i].CreatedAt = questions[i].CreatedAt.In(locationTokyo)
 		questions[i].UpdatedAt = questions[i].UpdatedAt.In(locationTokyo)
@@ -214,7 +234,7 @@ func (p *RedisPool) syncQuestion(eventID string) {
 	for _, question := range questions {
 		//HashMap SerializedされたJSONデータを格納
 		serializedJSON, _ := json.Marshal(question)
-		fmt.Println(questionsKey, " ", question.ID, " ", serializedJSON)
+		fmt.Println(questionsKey, " ", question.ID, " ", string(serializedJSON))
 		redisConnection.Do("HSET", questionsKey, question.ID, serializedJSON)
 
 		//SortedSet(Like)

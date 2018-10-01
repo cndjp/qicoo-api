@@ -57,6 +57,7 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 		"username: " + question.Username + "\n" +
 		"Like: " + strconv.Itoa(question.Like) + "\n"))
 
+<<<<<<< HEAD
 	var m *gorp.DbMap
 	db, err := sql.InitMySQL()
 	if err != nil {
@@ -66,13 +67,21 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	m = sql.MappingDBandTable(db)
 	defer m.Db.Close()
+=======
+	var m sql.DBMap
+	//dbmap, err := m.InitMySQLDB()
+	err := m.InitMySQLDB()
+	m.Map.AddTableWithName(Question{}, "questions")
+	//defer dbmap.Db.Close()
+	defer m.Map.Db.Close()
+>>>>>>> ca7eac927b474be7a17c92e71d46b43daa74d3e3
 
 	// debug SQL Trace
 	//dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
 	m.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
 
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Error(err)
 		return
 	}
 
@@ -81,7 +90,7 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	err = m.Map.Insert(&question)
 
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Error(err)
 		return
 	}
 
