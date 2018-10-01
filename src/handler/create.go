@@ -67,7 +67,7 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	m.Map.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
 
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Error(err)
 		return
 	}
 
@@ -76,7 +76,7 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	err = m.Map.Insert(&question)
 
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Error(err)
 		return
 	}
 

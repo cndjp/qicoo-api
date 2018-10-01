@@ -48,7 +48,7 @@ clean-all:
 
 .PHONY: run
 run:
-	go run $(NAME).go
+	go run src/$(NAME).go
 
 .PHONY: upde
 upde:
