@@ -2,8 +2,10 @@ package sql
 
 import (
 	"database/sql"
+	"encoding/json"
 	"log"
 	"os"
+	"reflect"
 	"testing"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -11,6 +13,21 @@ import (
 )
 
 var testMysqld *mysqltest.TestMysqld
+
+// 元のhandlerから参照すると循環参照になってしまうと言う悲劇から適当に作った。
+// time.Time型の扱いが面倒なので、時間もstringにしてしまった。
+// よほど暇なら直すかもしれない。
+type mock struct {
+	ID        string `json:"id" db:"id"`
+	Object    string `json:"object" db:"object"`
+	Username  string `json:"username" db:"username"`
+	EventID   string `json:"event_id" db:"event_id"`
+	ProgramID string `json:"program_id" db:"program_id"`
+	Comment   string `json:"comment" db:"comment"`
+	CreatedAt string `json:"created_at" db:"created_at"`
+	UpdatedAt string `json:"updated_at" db:"updated_at"`
+	Like      int    `json:"like" db:"like_count"`
+}
 
 func TestMain(m *testing.M) {
 	os.Exit(runTests(m))
@@ -39,24 +56,6 @@ func truncateTables() {
 	if err != nil {
 		log.Fatal("truncate table error:", err)
 	}
-
-	/*rows, err := db.Query("SHOW TABLES")
-	if err != nil {
-		log.Fatal("show tables error:", err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var tableName string
-		err = rows.Scan(&tableName)
-		if err != nil {
-			log.Fatal("show table error:", err)
-		}
-		_, err = db.Exec("TRUNCATE " + tableName)
-		if err != nil {
-			log.Fatal("truncate table error:", err)
-		}
-	}*/
 }
 
 func TestInitMySQLDB(t *testing.T) {
@@ -82,29 +81,41 @@ func TestInitMySQLDB(t *testing.T) {
 		event_id   VARCHAR(255) NOT NULL,
 		program_id VARCHAR(255) NOT NULL,
 		comment    TEXT         NOT NULL,
-		created_at DATETIME     DEFAULT NULL,
-		updated_at DATETIME     DEFAULT NULL,
+		created_at VARCHAR(255) NOT NULL,
+		updated_at VARCHAR(255) NOT NULL,
 		like_count INT          NOT NULL)`)
 	if err != nil {
 		t.Fatal("create tables error:", err)
 	}
 	defer tableRow.Close()
 
-	insertRow, err := db.Query("INSERT INTO test.mock VALUES (1, 'question', 'anonymous', '1', '1', 'I am mock', NULL, NULL, 100000)")
+	insertRow, err := db.Query("INSERT INTO test.mock VALUES (1, 'question', 'anonymous', '1', '1', 'I am mock', 'now', 'mock', 100000)")
 	if err != nil {
 		t.Fatal("insert row error:", err)
 	}
 	defer insertRow.Close()
 
 	m := MappingDBandTable(db)
-	result, err := m.Exec("SELECT comment from test.mock WHERE ID = 1")
-	if err != nil {
-		t.Fatal("", err)
-	}
-	t.Log(result)
+	m.AddTableWithName(mock{}, "mock")
 
-	err = m.TruncateTables()
+	var mks []mock
+	_, err = m.Select(&mks, "SELECT * FROM test.mock WHERE id = 1")
 	if err != nil {
-		t.Fatalf("an error '%s' was error truncate", err)
+		t.Fatal("select error:", err)
+	}
+
+	var mockComment string
+	var expectedComment = "I am mock"
+	for _, mk := range mks {
+		js, err := json.Marshal(mk)
+		if err != nil {
+			t.Fatal("json marshal error:", err)
+		}
+		t.Log("mock rows:", string(js))
+		mockComment = mk.Comment
+	}
+
+	if !reflect.DeepEqual(expectedComment, mockComment) {
+		t.Errorf("expected %q to eq %q", expectedComment, mockComment)
 	}
 }
