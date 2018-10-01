@@ -7,29 +7,6 @@ import (
 	"github.com/go-gorp/gorp"
 )
 
-// InitMySQLDB 環境変数を利用しDBへのConnectionを取得する(sqldriverでconnection poolが実装されているらしい)
-func MappingDBandTable(db *goSQL.DB) *gorp.DbMap {
-	// dbms := "mysql"
-	// user := os.Getenv("DB_USER")
-	// password := os.Getenv("DB_PASSWORD")
-	// protocol := "tcp(" + os.Getenv("DB_URL") + ")"
-	// dbname := "qicoo"
-	// option := "?parseTime=true"
-
-	// connect := user + ":" + password + "@" + protocol + "/" + dbname + option
-	// db, err := goSQL.Open(dbms, connect)
-
-	// if err != nil {
-	// 	return errors.Wrap(err, "error on MySQL initialization.")
-	// }
-
-	// structの構造体とDBのTableを紐づける
-	return &gorp.DbMap{Db: db, Dialect: gorp.MySQLDialect{}}
-	// dbmap.AddTableWithName(handler.Question{}, "questions")
-
-	//return nil
-}
-
 func InitMySQL() (db *goSQL.DB, err error) {
 	dbms := "mysql"
 	user := os.Getenv("DB_USER")
@@ -42,4 +19,10 @@ func InitMySQL() (db *goSQL.DB, err error) {
 	db, err = goSQL.Open(dbms, connect)
 
 	return
+}
+
+// InitMySQLDB 環境変数を利用しDBへのConnectionを取得する(sqldriverでconnection poolが実装されているらしい)
+func MappingDBandTable(db *goSQL.DB) *gorp.DbMap {
+	// structの構造体とDBのTableを紐づける
+	return &gorp.DbMap{Db: db, Dialect: gorp.MySQLDialect{}}
 }

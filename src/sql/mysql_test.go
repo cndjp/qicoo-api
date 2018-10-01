@@ -16,6 +16,6 @@ func TestInitMySQLDB(t *testing.T) {
 	m := MappingDBandTable(db)
 	err = m.TruncateTables()
 	if err != nil {
-		t.Fatalf("error truncate", err)
+		t.Fatalf("an error '%s' was error truncate", err)
 	}
 }
