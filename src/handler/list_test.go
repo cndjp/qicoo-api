@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -30,15 +29,11 @@ func runTests(m *testing.M) int {
 	return m.Run()
 }
 
-func flushRedis() {
-	err := testRedisConn.Flush()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+func flushallRedis() {
+	testRedisConn.Command("FLUSHALL").Expect("OK")
 }
 
 func TestGetQuestionList(t *testing.T) {
-	defer flushRedis()
+	defer flushallRedis()
 	//多分GetQuestionListから*redis.Connを取り出して組み直さないとテストはできない。
 }
