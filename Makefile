@@ -50,7 +50,7 @@ install:
 
 .PHONY: clean-test
 clean-test:
-	go clean -testcache
+	go clean --testcache
 
 .PHONY: clean
 clean:
