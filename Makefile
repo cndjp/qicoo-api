@@ -20,7 +20,7 @@ $(TARGET): $(SRCS)
 	golint src/${NAME}.go
 	go build $(OPTS) $(LDFLAGS) -o bin/$(NAME) src/${NAME}.go
 
-.PHONY : create-dotenv
+.PHONY: create-dotenv
 create-dotenv:
 	@if [ ! -f $(DOTENV) ]; \
 		then\
@@ -32,6 +32,10 @@ create-dotenv:
 	else \
 		echo Not Work. ;\
 	fi
+
+.PHONY: test-mysql
+test-mysql:
+	go test -v ./src/sql/mysql_test.go ./src/sql/mysql.go
 
 .PHONY: install
 install:
