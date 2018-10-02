@@ -1,13 +1,14 @@
-package sql
+package sql_test
 
 import (
-	"database/sql"
+	goSQL "database/sql"
 	"encoding/json"
 	"log"
 	"os"
 	"reflect"
 	"testing"
 
+	"github.com/cndjp/qicoo-api/src/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/lestrrat-go/test-mysqld"
 )
@@ -46,7 +47,7 @@ func runTests(m *testing.M) int {
 }
 
 func truncateTables() {
-	db, err := sql.Open("mysql", testMysqld.Datasource("test", "", "", 0))
+	db, err := goSQL.Open("mysql", testMysqld.Datasource("test", "", "", 0))
 	if err != nil {
 		log.Fatal("db connection error:", err)
 	}
@@ -61,7 +62,7 @@ func truncateTables() {
 func TestMappingDBandTable(t *testing.T) {
 	defer truncateTables()
 
-	db, err := sql.Open("mysql", testMysqld.Datasource("test", "", "", 0))
+	db, err := goSQL.Open("mysql", testMysqld.Datasource("test", "", "", 0))
 	if err != nil {
 		t.Fatal("db connection error:", err)
 	}
@@ -95,7 +96,7 @@ func TestMappingDBandTable(t *testing.T) {
 	}
 	defer insertRow.Close()
 
-	m := MappingDBandTable(db)
+	m := sql.MappingDBandTable(db)
 	m.AddTableWithName(mock{}, "mock")
 
 	var mks []mock
