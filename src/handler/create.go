@@ -17,7 +17,7 @@ import (
 func newQuestion(eventID string) *Question {
 	return &Question{
 		ID:        uuid.New().String(),
-		Object:    "qusetion",
+		Object:    "question",
 		Username:  "anonymous",
 		EventID:   eventID,
 		Like:      0,
