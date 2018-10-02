@@ -132,6 +132,7 @@ func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
 	//	p.syncQuestion(p.MuxVars.EventID)
 	//}
 
+	// 多分並列処理できるやつ
 	p.checkRedisKey()
 
 	/* Redisからデータを取得する */
