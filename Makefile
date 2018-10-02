@@ -33,12 +33,16 @@ create-dotenv:
 		echo Not Work. ;\
 	fi
 
-.PHONY: test-mysql
-test-mysql:
+.PHONY: test-sql
+test-sql:
 	go test -v ./src/sql/mysql_test.go ./src/sql/mysql.go
 
+.PHONY: test-list
+test-list:
+	go test -v ./src/handler/list_test.go ./src/handler/list.go
+
 .PHONY: test
-test: clean-test test-mysql
+test: clean-test test-sql test-list
 
 .PHONY: install
 install:
