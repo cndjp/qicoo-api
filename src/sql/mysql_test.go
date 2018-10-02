@@ -58,7 +58,7 @@ func truncateTables() {
 	}
 }
 
-func TestInitMySQLDB(t *testing.T) {
+func TestMappingDBandTable(t *testing.T) {
 	defer truncateTables()
 
 	db, err := sql.Open("mysql", testMysqld.Datasource("test", "", "", 0))
