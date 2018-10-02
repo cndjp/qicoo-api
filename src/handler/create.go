@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"encoding/json"
 
 	"github.com/cndjp/qicoo-api/src/sql"
 	"github.com/go-gorp/gorp"
@@ -14,51 +15,38 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func newQuestion(eventID string) *Question {
-	return &Question{
-		ID:        uuid.New().String(),
-		Object:    "question",
-		Username:  "anonymous",
-		EventID:   eventID,
-		Like:      0,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-}
-
 // QuestionCreateHandler QuestionオブジェクトをDBとRedisに書き込む
 func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	// DBとRedisに書き込むためのstiruct Object を生成。POST REQUEST のBodyから値を取得
-	//var question Question
-	//decoder := json.NewDecoder(r.Body)
-	//decoder.Decode(&question)
+	var question Question
+	decoder := json.NewDecoder(r.Body)
+	decoder.Decode(&question)
 
 	/* POST REQUEST の BODY に含まれていない値の生成 */
 	// uuid
-	//newUUID := uuid.New()
-	//question.ID = newUUID.String()
+	newUUID := uuid.New()
+	question.ID = newUUID.String()
 
 	// object
-	//question.Object = "question"
+	question.Object = "question"
 
 	// username
 	// TODO: Cookieからsessionidを取得して、Redisに存在する場合は、usernameを取得してquestionオブジェクトに格納する
-	//question.Username = "anonymous"
-
+	question.Username = "anonymous"
+	
 	// event_id URLに含まれている event_id を取得して、questionオブジェクトに格納
 	vars := mux.Vars(r)
 	eventID := vars["event_id"]
-	//question.EventID = eventID
-	question := newQuestion(eventID)
-
+	question.EventID = eventID
+	
 	// いいねの数
-	//question.Like = 0
+	question.Like = 0
 
 	// 時刻の取得
-	//now := time.Now()
-	//question.UpdateAt = now
-	//question.CreatedAt = now
+	now := time.Now()
+	question.UpdatedAt = now
+	question.CreatedAt = now
 
 	// debug
 	w.Write([]byte("comment: " + question.Comment + "\n" +
@@ -77,6 +65,7 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	m = sql.MappingDBandTable(db)
+	m.AddTableWithName(Question{}, "questions")
 	defer m.Db.Close()
 
 	// debug SQL Trace
