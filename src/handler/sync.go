@@ -16,9 +16,6 @@ func (p *RedisPool) syncQuestion(eventID string) {
 	defer redisConnection.Close()
 
 	// DBからデータを取得
-	//var m sql.DBMap
-	//dbmap, err := sql.InitMySQLDB()
-	//err := m.InitMySQLDB()
 	var m *gorp.DbMap
 	db, err := sql.InitMySQL()
 	if err != nil {
@@ -28,9 +25,7 @@ func (p *RedisPool) syncQuestion(eventID string) {
 
 	m = sql.MappingDBandTable(db)
 
-	//dbmap.AddTableWithName(Question{}, "questions")
 	m.AddTableWithName(Question{}, "questions")
-	//defer dbmap.Db.Close()
 	defer m.Db.Close()
 
 	if err != nil {
@@ -40,7 +35,6 @@ func (p *RedisPool) syncQuestion(eventID string) {
 	}
 
 	var questions []Question
-	//_, err = dbmap.Select(&questions, "SELECT * FROM questions WHERE event_id = '"+eventID+"'")
 	_, err = m.Select(&questions, "SELECT * FROM questions WHERE event_id = '"+eventID+"'")
 
 	if err != nil {
@@ -63,7 +57,6 @@ func (p *RedisPool) syncQuestion(eventID string) {
 	for _, question := range questions {
 		//HashMap SerializedされたJSONデータを格納
 		serializedJSON, _ := json.Marshal(question)
-		//fmt.Println(questionsKey, " ", question.ID, " ", string(serializedJSON))
 		redisConnection.Do("HSET", questionsKey, question.ID, serializedJSON)
 
 		//SortedSet(Like)
