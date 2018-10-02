@@ -62,7 +62,7 @@ run:
 
 .PHONY: upde
 upde:
-	dep ensure -update
+	dep ensure --update
 
 .PHONY: deps
 dep:

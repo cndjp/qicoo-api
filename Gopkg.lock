@@ -4,7 +4,10 @@
 [[projects]]
   branch = "master"
   name = "github.com/alecthomas/template"
-  packages = [".","parse"]
+  packages = [
+    ".",
+    "parse"
+  ]
   revision = "a0175ee3bccc567396460bf5acd36800cb10c49c"
 
 [[projects]]
@@ -27,7 +30,10 @@
 
 [[projects]]
   name = "github.com/gomodule/redigo"
-  packages = ["internal","redis"]
+  packages = [
+    "internal",
+    "redis"
+  ]
   revision = "9c11da706d9b7902c6da69c592f75637793fe121"
   version = "v2.0.0"
 
@@ -74,6 +80,12 @@
   version = "v0.8.0"
 
 [[projects]]
+  name = "github.com/rafaeljusto/redigomock"
+  packages = ["."]
+  revision = "7ae0511314e9946bb0c87d6d485169ab2467a290"
+  version = "v2.1"
+
+[[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   revision = "a67f783a3814b8729bd2dac5780b5f78f8dbd64d"
@@ -83,12 +95,15 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "5295e8364332db77d75fce11f1d19c053919a9c9"
+  revision = "e3636079e1a4c1f337f212cc5cd2aca108f6c900"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix","windows"]
+  packages = [
+    "unix",
+    "windows"
+  ]
   revision = "e4b3c5e9061176387e7cea65e4dc5853801f3fb7"
 
 [[projects]]
@@ -106,6 +121,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7d120a58ae24afdc55c4a2c563f47b0a3ec62e987b076aae99d119505797ab3c"
+  inputs-digest = "e8cbee4cb64efac2c8346e5f326d599f0679dba2d8a9489f31c5664cdccab7b1"
   solver-name = "gps-cdcl"
   solver-version = 1
