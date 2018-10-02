@@ -42,8 +42,12 @@ type muxVars struct {
 }
 
 type RedisPool struct {
-	Pool    *redis.Pool
-	MuxVars muxVars
+	Pool             *redis.Pool
+	MuxVars          muxVars
+	RedisConn        redis.Conn
+	QuestionsKey     string
+	LikeSortedKey    string
+	CreatedSortedKey string
 }
 
 // NewRedisPool RedisConnectionPoolからconnectionを取り出す
@@ -90,6 +94,9 @@ func (p *RedisPool) QuestionListHandler(w http.ResponseWriter, r *http.Request) 
 		Order:   vars["order"],
 	}
 
+	p.RedisConn = p.getRedisConnection()
+	defer p.RedisConn.Close()
+
 	questionList := p.GetQuestionList()
 
 	/* JSONの整形 */
@@ -110,20 +117,22 @@ func (p *RedisPool) QuestionListHandler(w http.ResponseWriter, r *http.Request) 
 
 // GetQuestionList RedisとDBからデータを取得する
 func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
-	redisConn := p.getRedisConnection()
-	defer redisConn.Close()
+	//redisConn := p.getRedisConnection()
+	//defer redisConn.Close()
 
 	/* Redisにデータが存在するか確認する。 */
-	questionsKey, likeSortedKey, createdSortedKey := p.getQuestionsKey()
+	p.getQuestionsKey()
 
 	// 3種類のKeyが存在しない場合はデータが何かしら不足しているため、データの同期を行う
-	hasQuestionsKey := redisHasKey(redisConn, questionsKey)
-	hasLikeSortedKey := redisHasKey(redisConn, likeSortedKey)
-	hasCreatedSortedKey := redisHasKey(redisConn, createdSortedKey)
+	//hasQuestionsKey := redisHasKey(p.RedisConn, questionsKey)
+	//hasLikeSortedKey := redisHasKey(p.RedisConn, likeSortedKey)
+	//hasCreatedSortedKey := redisHasKey(p.RedisConn, createdSortedKey)
 
-	if !hasQuestionsKey || !hasLikeSortedKey || !hasCreatedSortedKey {
-		p.syncQuestion(p.MuxVars.EventID)
-	}
+	//if !hasQuestionsKey || !hasLikeSortedKey || !hasCreatedSortedKey {
+	//	p.syncQuestion(p.MuxVars.EventID)
+	//}
+
+	p.checkRedisKey()
 
 	/* Redisからデータを取得する */
 	// redisのcommand
@@ -137,9 +146,9 @@ func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
 	// sort redisのkey
 	var sortedkey string
 	if p.MuxVars.Sort == "created_at" {
-		sortedkey = createdSortedKey
+		sortedkey = p.CreatedSortedKey
 	} else if p.MuxVars.Sort == "like" {
-		sortedkey = likeSortedKey
+		sortedkey = p.LikeSortedKey
 	}
 
 	// debug
@@ -147,7 +156,7 @@ func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
 
 	// API実行時に指定されたSortをRedisで実行
 	var uuidSlice []string
-	uuidSlice, err := redis.Strings(redisConn.Do(redisCommand, sortedkey, p.MuxVars.Start-1, p.MuxVars.End-1))
+	uuidSlice, err := redis.Strings(p.RedisConn.Do(redisCommand, sortedkey, p.MuxVars.Start-1, p.MuxVars.End-1))
 	if err != nil {
 		logrus.Error(err)
 	}
@@ -159,13 +168,13 @@ func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
 	// RedisのDo関数は、Interface型のSliceしか受け付けないため、makeで生成 (String型のSliceはコンパイルエラー)
 	// Example) HMGET questions_jks1812 questionID questionID questionID questionID ...
 	var list = make([]interface{}, 0, 20)
-	list = append(list, questionsKey)
+	list = append(list, p.QuestionsKey)
 	for _, str := range uuidSlice {
 		list = append(list, str)
 	}
 
 	var bytesSlice [][]byte
-	bytesSlice, _ = redis.ByteSlices(redisConn.Do("HMGET", list...))
+	bytesSlice, _ = redis.ByteSlices(p.RedisConn.Do("HMGET", list...))
 
 	var questions []Question
 	for _, bytes := range bytesSlice {
@@ -191,12 +200,12 @@ func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
 	return questionList
 }
 
-func (p *RedisPool) getQuestionsKey() (questionsKey string, likeSortedKey string, createdSortedKey string) {
-	questionsKey = "questions_" + p.MuxVars.EventID
-	likeSortedKey = questionsKey + "_like"
-	createdSortedKey = questionsKey + "_created"
+func (p *RedisPool) getQuestionsKey() {
+	p.QuestionsKey = "questions_" + p.MuxVars.EventID
+	p.LikeSortedKey = p.QuestionsKey + "_like"
+	p.CreatedSortedKey = p.QuestionsKey + "_created"
 
-	return questionsKey, likeSortedKey, createdSortedKey
+	return
 }
 
 // redisHasKey

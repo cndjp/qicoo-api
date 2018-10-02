@@ -11,6 +11,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// これ並列化できる（チャンネル込みで）
+func (p *RedisPool) checkRedisKey() {
+	/* Redisにデータが存在するか確認する。 */
+	//questionsKey, likeSortedKey, createdSortedKey := p.getQuestionsKey()
+
+	// 3種類のKeyが存在しない場合はデータが何かしら不足しているため、データの同期を行う
+	if !redisHasKey(p.RedisConn, p.QuestionsKey) || !redisHasKey(p.RedisConn, p.LikeSortedKey) || !redisHasKey(p.RedisConn, p.CreatedSortedKey) {
+		p.syncQuestion(p.MuxVars.EventID)
+	}
+
+}
+
 func (p *RedisPool) syncQuestion(eventID string) {
 	redisConnection := p.getRedisConnection()
 	defer redisConnection.Close()
@@ -51,18 +63,18 @@ func (p *RedisPool) syncQuestion(eventID string) {
 	}
 
 	//Redisで利用するKeyを取得
-	questionsKey, likeSortedKey, createdSortedKey := getQuestionsKey(eventID)
+	p.getQuestionsKey()
 
 	//DBのデータをRedisに同期する。
 	for _, question := range questions {
 		//HashMap SerializedされたJSONデータを格納
 		serializedJSON, _ := json.Marshal(question)
-		redisConnection.Do("HSET", questionsKey, question.ID, serializedJSON)
+		redisConnection.Do("HSET", p.QuestionsKey, question.ID, serializedJSON)
 
 		//SortedSet(Like)
-		redisConnection.Do("ZADD", likeSortedKey, question.Like, question.ID)
+		redisConnection.Do("ZADD", p.LikeSortedKey, question.Like, question.ID)
 
 		//SortedSet(CreatedAt)
-		redisConnection.Do("ZADD", createdSortedKey, question.CreatedAt.Unix(), question.ID)
+		redisConnection.Do("ZADD", p.CreatedSortedKey, question.CreatedAt.Unix(), question.ID)
 	}
 }
