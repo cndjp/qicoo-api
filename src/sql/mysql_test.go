@@ -14,6 +14,7 @@ import (
 )
 
 var testMysqld *mysqltest.TestMysqld
+var mySQLDataSrc string
 
 // 元のhandlerから参照すると循環参照になってしまうと言う悲劇から適当に作った。
 // time.Time型の扱いが面倒なので、時間もstringにしてしまった。
@@ -30,24 +31,37 @@ type mock struct {
 	Like      int    `json:"like" db:"like_count"`
 }
 
+func isTravisEnv() bool {
+	if os.Getenv("IN_TRAVIS") == "true" {
+		return true
+	}
+	return false
+}
+
 func TestMain(m *testing.M) {
 	os.Exit(runTests(m))
 }
 
 func runTests(m *testing.M) int {
-	mysqld, err := mysqltest.NewMysqld(nil)
-	if err != nil {
-		log.Fatal("runTests: failed launch mysql server:", err)
-	}
-	defer mysqld.Stop()
 
-	testMysqld = mysqld
+	if isTravisEnv() {
+		mySQLDataSrc = "root@tcp(localhost:3306)"
+	} else {
+		mysqld, err := mysqltest.NewMysqld(nil)
+		if err != nil {
+			log.Fatal("runTests: failed launch mysql server:", err)
+		}
+		defer mysqld.Stop()
+
+		testMysqld = mysqld
+		mySQLDataSrc = testMysqld.Datasource("test", "", "", 0)
+	}
 
 	return m.Run()
 }
 
 func truncateTables() {
-	db, err := goSQL.Open("mysql", testMysqld.Datasource("test", "", "", 0))
+	db, err := goSQL.Open("mysql", mySQLDataSrc)
 	if err != nil {
 		log.Fatal("db connection error:", err)
 	}
@@ -62,7 +76,7 @@ func truncateTables() {
 func TestMappingDBandTable(t *testing.T) {
 	defer truncateTables()
 
-	db, err := goSQL.Open("mysql", testMysqld.Datasource("test", "", "", 0))
+	db, err := goSQL.Open("mysql", mySQLDataSrc)
 	if err != nil {
 		t.Fatal("db connection error:", err)
 	}
