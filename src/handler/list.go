@@ -142,9 +142,9 @@ func (p *RedisPool) getQuestionList(eventID string, start int, end int, sort str
 		logrus.Error(err)
 	}
 
-	for _, u := range uuidSlice {
-		logrus.Info(u)
-	}
+	//for _, u := range uuidSlice {
+		//logrus.Info(u)
+	//}
 
 	// RedisのDo関数は、Interface型のSliceしか受け付けないため、makeで生成 (String型のSliceはコンパイルエラー)
 	// Example) HMGET questions_jks1812 questionID questionID questionID questionID ...
@@ -233,7 +233,7 @@ func (p *RedisPool) syncQuestion(eventID string) {
 	for _, question := range questions {
 		//HashMap SerializedされたJSONデータを格納
 		serializedJSON, _ := json.Marshal(question)
-		fmt.Println(questionsKey, " ", question.ID, " ", string(serializedJSON))
+		//fmt.Println(questionsKey, " ", question.ID, " ", string(serializedJSON))
 		redisConnection.Do("HSET", questionsKey, question.ID, serializedJSON)
 
 		//SortedSet(Like)
@@ -254,7 +254,10 @@ func getQuestionsKey(eventID string) (questionsKey string, likeSortedKey string,
 
 // redisHasKey
 func redisHasKey(conn redis.Conn, key string) bool {
-	hasInt, _ := redis.Int(conn.Do("EXISTS", key))
+	hasInt, err := redis.Int(conn.Do("EXISTS", key))
+	if err != nil {
+		logrus.Error(err)
+	}
 
 	var hasKey bool
 	if hasInt == 1 {
