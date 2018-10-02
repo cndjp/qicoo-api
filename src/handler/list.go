@@ -133,7 +133,7 @@ func (p *RedisPool) getQuestionList(eventID string, start int, end int, sort str
 	}
 
 	// debug
-	fmt.Println(redisCommand, sortedkey, start-1, end-1)
+	logrus.Info(redisCommand, sortedkey, start-1, end-1)
 
 	// API実行時に指定されたSortをRedisで実行
 	var uuidSlice []string
@@ -143,7 +143,7 @@ func (p *RedisPool) getQuestionList(eventID string, start int, end int, sort str
 	}
 
 	for _, u := range uuidSlice {
-		fmt.Println(u)
+		logrus.Info(u)
 	}
 
 	// RedisのDo関数は、Interface型のSliceしか受け付けないため、makeで生成 (String型のSliceはコンパイルエラー)
