@@ -76,6 +76,7 @@ dep:
 dep-install:
 	go get -u github.com/golang/dep/cmd/dep
 
+.PHONY: cross-build
 cross-build: deps
 	for os in darwin linux windows; do \
 		for arch in amd64 386; do \
@@ -83,6 +84,7 @@ cross-build: deps
 		done; \
 	done
 
+.PHONY: dist
 dist:
 	cd dist && \
 		$(DIST_DIRS) cp ../LICENSE {} \; && \
