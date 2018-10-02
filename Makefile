@@ -37,9 +37,16 @@ create-dotenv:
 test-mysql:
 	go test -v ./src/sql/mysql_test.go ./src/sql/mysql.go
 
+.PHONY: test
+test: clean-test test-mysql
+
 .PHONY: install
 install:
 	go install $(LDFLAGS)
+
+.PHONY: clean-test
+clean-test:
+	go clean -testcache
 
 .PHONY: clean
 clean:
