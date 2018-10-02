@@ -80,7 +80,7 @@ func (p *RedisPool) QuestionListHandler(w http.ResponseWriter, r *http.Request) 
 	sort := vars["sort"]
 	order := vars["order"]
 
-	questionList := p.getQuestionList(eventID, start, end, sort, order)
+	questionList := p.GetQuestionList(eventID, start, end, sort, order)
 
 	/* JSONの整形 */
 	// QuestionのStructをjsonとして変換
@@ -98,8 +98,8 @@ func (p *RedisPool) QuestionListHandler(w http.ResponseWriter, r *http.Request) 
 
 }
 
-// getQuestions RedisとDBからデータを取得する
-func (p *RedisPool) getQuestionList(eventID string, start int, end int, sort string, order string) (questionList QuestionList) {
+// GetQuestionList RedisとDBからデータを取得する
+func (p *RedisPool) GetQuestionList(eventID string, start int, end int, sort string, order string) (questionList QuestionList) {
 	redisConn := p.getRedisConnection()
 	defer redisConn.Close()
 
@@ -143,7 +143,7 @@ func (p *RedisPool) getQuestionList(eventID string, start int, end int, sort str
 	}
 
 	//for _, u := range uuidSlice {
-		//logrus.Info(u)
+	//logrus.Info(u)
 	//}
 
 	// RedisのDo関数は、Interface型のSliceしか受け付けないため、makeで生成 (String型のSliceはコンパイルエラー)
