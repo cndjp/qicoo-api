@@ -53,8 +53,7 @@ clean:
 	rm -rf bin/*
 
 .PHONY: clean-all
-clean-all:
-	rm -rf bin/*
+clean-all: clean
 	rm -rf dist/*
 
 .PHONY: run
