@@ -108,7 +108,7 @@ func (p *RedisPool) GetQuestionList(eventID string, start int, end int, sort str
 	hasCreatedSortedKey := redisHasKey(redisConn, createdSortedKey)
 
 	if !hasQuestionsKey || !hasLikeSortedKey || !hasCreatedSortedKey {
-		p.SyncQuestion(eventID)
+		p.syncQuestion(eventID)
 	}
 
 	/* Redisからデータを取得する */

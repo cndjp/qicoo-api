@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (p *RedisPool) SyncQuestion(eventID string) {
+func (p *RedisPool) syncQuestion(eventID string) {
 	redisConnection := p.getRedisConnection()
 	defer redisConnection.Close()
 
