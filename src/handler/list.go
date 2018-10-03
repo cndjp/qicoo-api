@@ -156,7 +156,10 @@ func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
 	}
 
 	var bytesSlice [][]byte
-	bytesSlice, _ = redis.ByteSlices(p.RedisConn.Do("HMGET", list...))
+	bytesSlice, err = redis.ByteSlices(p.RedisConn.Do("HMGET", list...))
+	if err != nil {
+		logrus.Error(err)
+	}
 
 	var questions []Question
 	for _, bytes := range bytesSlice {
