@@ -1,18 +1,17 @@
 package handler_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/cndjp/qicoo-api/src/handler"
 	"github.com/gomodule/redigo/redis"
 	"github.com/rafaeljusto/redigomock"
-	"github.com/sirupsen/logrus"
 )
 
 var testRedisConn *redigomock.Conn
@@ -64,8 +63,7 @@ func TestRedigoMock(t *testing.T) {
 }
 
 func TestGetQuestionList(t *testing.T) {
-	//defer flushallRedis()
-	//mockPool := handler.NewRedisPool()
+	defer flushallRedis()
 	var pool = &redis.Pool{
 		MaxIdle:     3,
 		MaxActive:   1000,
@@ -114,23 +112,16 @@ func TestGetQuestionList(t *testing.T) {
 
 	ql := mockPool.GetQuestionList()
 
-	/* JSONの整形 */
-	// QuestionのStructをjsonとして変換
-	jsonBytes, err := json.Marshal(ql)
-	if err != nil {
-		logrus.Error(err)
+	mockComment := ql.Data[0].Comment
+	expectedComment := "I am mock"
+
+	if !reflect.DeepEqual(expectedComment, mockComment) {
+		t.Errorf("expected %q to eq %q", expectedComment, mockComment)
 	}
-
-	// 整形用のバッファを作成し、整形を実行
-	out := new(bytes.Buffer)
-	// プリフィックスなし、スペース2つでインデント
-	json.Indent(out, jsonBytes, "", "  ")
-
-	fmt.Println(out.String())
 }
 
-/*
-func _TestGetQuestionList(t *testing.T) {
+/* うまく行かないし、一回TODOにしておこう (＾＝＾)
+func TestGetQuestionList2(t *testing.T) {
 	defer flushallRedis()
 
 	var pool = &redis.Pool{
@@ -164,6 +155,8 @@ func _TestGetQuestionList(t *testing.T) {
 
 	var mockChannel = testEventID
 
+	mockQuestionJS, _ := json.Marshal(mockQuestion)
+
 	testRedisConn.Command("HSET", "questions_"+mockChannel, 1, mockQuestion).Expect(int64(1))
 	testRedisConn.Command("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID).Expect(int64(1))
 	testRedisConn.Command("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID).Expect(int64(1))
@@ -177,15 +170,9 @@ func _TestGetQuestionList(t *testing.T) {
 		"1",
 	})
 
-	if _, err := testRedisConn.Do("HSET", "questions_"+mockChannel, 1, mockQuestion); err != nil {
+	if _, err := testRedisConn.Do("HSET", "questions_"+mockChannel, 1, mockQuestionJS); err != nil {
 		t.Error(err)
 	}
-
-	testRedisConn.Command("HGETALL", "questions_"+mockChannel).Expect([]interface{}{
-		mockQuestion,
-	})
-	r, _ := testRedisConn.Do("HGETALL", "questions_"+mockChannel)
-	fmt.Println(r)
 
 	//SortedSet(Like)
 	testRedisConn.Do("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID)
