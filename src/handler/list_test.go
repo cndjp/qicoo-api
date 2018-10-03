@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"reflect"
@@ -39,27 +38,6 @@ func runTests(m *testing.M) int {
 
 func flushallRedis() {
 	testRedisConn.Command("FLUSHALL").Expect("OK")
-}
-
-func TestRedigoMock(t *testing.T) {
-	conn := redigomock.NewConn()
-	defer conn.Close()
-
-	// 値の書き込み
-	conn.Command("SET", "temperature", "25").Expect(int64(1))
-	conn.Command("GET", "temperature").Expect("25")
-	r, err := conn.Do("SET", "temperature", "25")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(r) // OK
-
-	// 値の読み出し
-	s, err := redis.String(conn.Do("GET", "temperature"))
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(s) // 25
 }
 
 func TestGetQuestionList(t *testing.T) {
