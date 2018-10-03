@@ -39,7 +39,7 @@ test-sql:
 
 .PHONY: test-list
 test-list:
-	go test -v ./src/handler/list_test.go ./src/handler/list.go
+	go test -v ./src/handler/list_test.go ./src/handler/list.go ./src/handler/sync.go
 
 .PHONY: test
 test: clean-test test-sql test-list

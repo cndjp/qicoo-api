@@ -33,7 +33,7 @@ type Question struct {
 	Like      int       `json:"like" db:"like_count"`
 }
 
-type muxVars struct {
+type MuxVars struct {
 	EventID string
 	Start   int
 	End     int
@@ -43,7 +43,7 @@ type muxVars struct {
 
 type RedisPool struct {
 	Pool             *redis.Pool
-	MuxVars          muxVars
+	Vars             MuxVars
 	RedisConn        redis.Conn
 	QuestionsKey     string
 	LikeSortedKey    string
@@ -69,7 +69,7 @@ func NewRedisPool() *RedisPool {
 }
 
 // GetRedisConnection
-func (p *RedisPool) getRedisConnection() (conn redis.Conn) {
+func (p *RedisPool) GetRedisConnection() (conn redis.Conn) {
 	return p.Pool.Get()
 }
 
@@ -86,7 +86,7 @@ func (p *RedisPool) QuestionListHandler(w http.ResponseWriter, r *http.Request) 
 		logrus.Error(err)
 	}
 
-	p.MuxVars = muxVars{
+	p.Vars = MuxVars{
 		EventID: vars["event_id"],
 		Start:   start,
 		End:     end,
@@ -94,7 +94,7 @@ func (p *RedisPool) QuestionListHandler(w http.ResponseWriter, r *http.Request) 
 		Order:   vars["order"],
 	}
 
-	p.RedisConn = p.getRedisConnection()
+	p.RedisConn = p.GetRedisConnection()
 	defer p.RedisConn.Close()
 
 	questionList := p.GetQuestionList()
@@ -129,7 +129,7 @@ func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
 	//hasCreatedSortedKey := redisHasKey(p.RedisConn, createdSortedKey)
 
 	//if !hasQuestionsKey || !hasLikeSortedKey || !hasCreatedSortedKey {
-	//	p.syncQuestion(p.MuxVars.EventID)
+	//	p.syncQuestion(p.Vars.EventID)
 	//}
 
 	// 多分並列処理できるやつ
@@ -138,26 +138,26 @@ func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
 	/* Redisからデータを取得する */
 	// redisのcommand
 	var redisCommand string
-	if p.MuxVars.Order == "asc" {
+	if p.Vars.Order == "asc" {
 		redisCommand = "ZRANGE"
-	} else if p.MuxVars.Order == "desc" {
+	} else if p.Vars.Order == "desc" {
 		redisCommand = "ZREVRANGE"
 	}
 
 	// sort redisのkey
 	var sortedkey string
-	if p.MuxVars.Sort == "created_at" {
+	if p.Vars.Sort == "created_at" {
 		sortedkey = p.CreatedSortedKey
-	} else if p.MuxVars.Sort == "like" {
+	} else if p.Vars.Sort == "like" {
 		sortedkey = p.LikeSortedKey
 	}
 
 	// debug
-	logrus.Info(redisCommand, sortedkey, p.MuxVars.Start-1, p.MuxVars.End-1)
+	logrus.Info(redisCommand, sortedkey, p.Vars.Start-1, p.Vars.End-1)
 
 	// API実行時に指定されたSortをRedisで実行
 	var uuidSlice []string
-	uuidSlice, err := redis.Strings(p.RedisConn.Do(redisCommand, sortedkey, p.MuxVars.Start-1, p.MuxVars.End-1))
+	uuidSlice, err := redis.Strings(p.RedisConn.Do(redisCommand, sortedkey, p.Vars.Start-1, p.Vars.End-1))
 	if err != nil {
 		logrus.Error(err)
 	}
@@ -202,7 +202,7 @@ func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
 }
 
 func (p *RedisPool) getQuestionsKey() {
-	p.QuestionsKey = "questions_" + p.MuxVars.EventID
+	p.QuestionsKey = "questions_" + p.Vars.EventID
 	p.LikeSortedKey = p.QuestionsKey + "_like"
 	p.CreatedSortedKey = p.QuestionsKey + "_created"
 
