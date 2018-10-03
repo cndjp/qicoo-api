@@ -133,7 +133,7 @@ func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
 	//}
 
 	// 多分並列処理できるやつ
-	p.checkRedisKey()
+	//p.checkRedisKey()
 
 	/* Redisからデータを取得する */
 	// redisのcommand

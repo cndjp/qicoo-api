@@ -18,7 +18,7 @@ func (p *RedisPool) checkRedisKey() {
 
 	// 3種類のKeyが存在しない場合はデータが何かしら不足しているため、データの同期を行う
 	if !redisHasKey(p.RedisConn, p.QuestionsKey) || !redisHasKey(p.RedisConn, p.LikeSortedKey) || !redisHasKey(p.RedisConn, p.CreatedSortedKey) {
-		//p.syncQuestion(p.Vars.EventID)
+		p.syncQuestion(p.Vars.EventID)
 	}
 
 }
