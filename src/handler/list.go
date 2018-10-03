@@ -94,10 +94,8 @@ func (p *RedisPool) QuestionListHandler(w http.ResponseWriter, r *http.Request) 
 	p.RedisConn = p.GetRedisConnection()
 	defer p.RedisConn.Close()
 
-	/* Redisにデータが存在するか確認する。 */
-	p.getQuestionsKey()
-
 	// 多分並列処理できるやつ
+	/* Redisにデータが存在するか確認する。 */
 	p.checkRedisKey()
 
 	questionList := p.GetQuestionList()
@@ -120,6 +118,8 @@ func (p *RedisPool) QuestionListHandler(w http.ResponseWriter, r *http.Request) 
 
 // GetQuestionList RedisとDBからデータを取得する
 func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
+	p.getQuestionsKey()
+
 	/* Redisからデータを取得する */
 	// redisのcommand
 	var redisCommand string
