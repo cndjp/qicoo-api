@@ -63,9 +63,6 @@ func NewRedisPool() *RedisPool {
 			Dial:        func() (redis.Conn, error) { return redis.Dial("tcp", url) },
 		},
 	}
-
-	//RedisPool = pool
-
 }
 
 // GetRedisConnection
@@ -97,6 +94,12 @@ func (p *RedisPool) QuestionListHandler(w http.ResponseWriter, r *http.Request) 
 	p.RedisConn = p.GetRedisConnection()
 	defer p.RedisConn.Close()
 
+	/* Redisにデータが存在するか確認する。 */
+	p.getQuestionsKey()
+
+	// 多分並列処理できるやつ
+	p.checkRedisKey()
+
 	questionList := p.GetQuestionList()
 
 	/* JSONの整形 */
@@ -117,24 +120,6 @@ func (p *RedisPool) QuestionListHandler(w http.ResponseWriter, r *http.Request) 
 
 // GetQuestionList RedisとDBからデータを取得する
 func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
-	//redisConn := p.getRedisConnection()
-	//defer redisConn.Close()
-
-	/* Redisにデータが存在するか確認する。 */
-	p.getQuestionsKey()
-
-	// 3種類のKeyが存在しない場合はデータが何かしら不足しているため、データの同期を行う
-	//hasQuestionsKey := redisHasKey(p.RedisConn, questionsKey)
-	//hasLikeSortedKey := redisHasKey(p.RedisConn, likeSortedKey)
-	//hasCreatedSortedKey := redisHasKey(p.RedisConn, createdSortedKey)
-
-	//if !hasQuestionsKey || !hasLikeSortedKey || !hasCreatedSortedKey {
-	//	p.syncQuestion(p.Vars.EventID)
-	//}
-
-	// 多分並列処理できるやつ
-	//p.checkRedisKey()
-
 	/* Redisからデータを取得する */
 	// redisのcommand
 	var redisCommand string
@@ -161,10 +146,6 @@ func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
 	if err != nil {
 		logrus.Error(err)
 	}
-
-	//for _, u := range uuidSlice {
-	//logrus.Info(u)
-	//}
 
 	// RedisのDo関数は、Interface型のSliceしか受け付けないため、makeで生成 (String型のSliceはコンパイルエラー)
 	// Example) HMGET questions_jks1812 questionID questionID questionID questionID ...
