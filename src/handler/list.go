@@ -71,7 +71,10 @@ func (p *RedisPool) GetRedisConnection() (conn redis.Conn) {
 }
 
 // QuestionListHandler QuestionオブジェクトをRedisから取得する。存在しない場合はDBから取得し、Redisへ格納する
-func (p *RedisPool) QuestionListHandler(w http.ResponseWriter, r *http.Request) {
+func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
+	// RedisPoolの初期化初期設定
+	var p = NewRedisPool()
+
 	// URLに含まれている event_id を取得
 	vars := mux.Vars(r)
 	start, err := strconv.Atoi(vars["start"])
