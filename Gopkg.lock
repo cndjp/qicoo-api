@@ -71,7 +71,7 @@
   branch = "master"
   name = "github.com/lestrrat-go/test-mysqld"
   packages = ["."]
-  revision = "e2c1c3b0398d4587f848ce0341dad813d0f9f462"
+  revision = "b25618440bf65cc20bf684f345ad3eaecde5ccb6"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -104,7 +104,7 @@
     "unix",
     "windows"
   ]
-  revision = "e4b3c5e9061176387e7cea65e4dc5853801f3fb7"
+  revision = "af653ce8b74f808d092db8ca9741fbb63d2a469d"
 
 [[projects]]
   name = "google.golang.org/appengine"
