@@ -2,7 +2,7 @@ package handler_test
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
@@ -10,10 +10,9 @@ import (
 
 	"github.com/cndjp/qicoo-api/src/handler"
 	"github.com/gomodule/redigo/redis"
-	"github.com/rafaeljusto/redigomock"
 )
 
-var testRedisConn *redigomock.Conn
+//var testRedisConn *redigomock.Conn
 
 const testEventID = "testEventID"
 
@@ -22,7 +21,7 @@ func TestMain(m *testing.M) {
 }
 
 func runTests(m *testing.M) int {
-	conn := redigomock.NewConn()
+	/*conn := redigomock.NewConn()
 	defer func() {
 		conn.Clear()
 		err := conn.Close()
@@ -31,17 +30,18 @@ func runTests(m *testing.M) int {
 		}
 	}()
 
-	testRedisConn = conn
+	testRedisConn = conn*/
 
 	return m.Run()
 }
 
-func flushallRedis() {
-	testRedisConn.Command("FLUSHALL").Expect("OK")
+func flushallRedis(conn redis.Conn) {
+	if _, err := conn.Do("FLUSHALL"); err != nil {
+		fmt.Println(err)
+	}
 }
 
 func TestGetQuestionList(t *testing.T) {
-	defer flushallRedis()
 	var pool = &redis.Pool{
 		MaxIdle:     3,
 		MaxActive:   1000,
@@ -74,7 +74,12 @@ func TestGetQuestionList(t *testing.T) {
 
 	var mockChannel = testEventID
 	mockPool.RedisConn = mockPool.Pool.Get()
-	defer mockPool.RedisConn.Close()
+	defer func() {
+		mockPool.RedisConn.Close()
+
+		// 一律でflushallはやりすぎか？
+		flushallRedis(mockPool.RedisConn)
+	}()
 
 	mockQuestionJS, err := json.Marshal(mockQuestion)
 	if err != nil {
