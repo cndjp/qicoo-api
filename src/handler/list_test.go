@@ -76,7 +76,10 @@ func TestGetQuestionList(t *testing.T) {
 	mockPool.RedisConn = mockPool.Pool.Get()
 	defer mockPool.RedisConn.Close()
 
-	mockQuestionJS, _ := json.Marshal(mockQuestion)
+	mockQuestionJS, err := json.Marshal(mockQuestion)
+	if err != nil {
+		t.Error(err)
+	}
 
 	if _, err := mockPool.RedisConn.Do("HSET", "questions_"+mockChannel, 1, mockQuestionJS); err != nil {
 		t.Error(err)
