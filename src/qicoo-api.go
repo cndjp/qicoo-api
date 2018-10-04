@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/cndjp/qicoo-api/src/handler"
@@ -27,26 +28,7 @@ func init() {
 }
 
 func main() {
-	//r := mux.NewRouter()
+	r := httprouter.MakeRouter(handler.QuestionCreateHandler, handler.QuestionListHandler)
 
-	// RedisPoolの初期化初期設定
-	//var p = handler.NewRedisPool()
-
-	// route QuestionCreate
-	//r.Path("/v1/{event_id:[a-zA-Z0-9-_]+}/questions").
-	//Methods("POST").
-	//HandlerFunc(handler.QuestionCreateHandler)
-
-	// route QuestionList
-	//r.Path("/v1/{event_id:[a-zA-Z0-9-_]+}/questions").
-	// 	Methods("GET").
-	// 	Queries("start", "{start:[0-9]+}").
-	// 	Queries("end", "{end:[0-9]+}").
-	// 	Queries("sort", "{sort:[a-zA-Z0-9-_]+}").
-	// 	Queries("order", "{order:[a-zA-Z0-9-_]+}").
-	// 	HandlerFunc(handler.QuestionListHandler)
-
-	// http.ListenAndServe(":8080", r)
-
-	httprouter.Run(handler.QuestionCreateHandler, handler.QuestionListHandler)
+	http.ListenAndServe(":8080", r)
 }

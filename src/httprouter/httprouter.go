@@ -6,7 +6,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func Run(createFunc, ListFunc func(w http.ResponseWriter, r *http.Request)) {
+func MakeRouter(createFunc, ListFunc func(w http.ResponseWriter, r *http.Request)) *mux.Router {
 	r := mux.NewRouter()
 
 	// RedisPoolの初期化初期設定
@@ -26,5 +26,5 @@ func Run(createFunc, ListFunc func(w http.ResponseWriter, r *http.Request)) {
 		Queries("order", "{order:[a-zA-Z0-9-_]+}").
 		HandlerFunc(ListFunc)
 
-	http.ListenAndServe(":8080", r)
+	return r
 }

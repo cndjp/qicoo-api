@@ -33,6 +33,10 @@ create-dotenv:
 		echo Not Work. ;\
 	fi
 
+.PHONY: test-main
+test-main:
+	go test -v ./src/qicoo-api_test.go
+
 .PHONY: test-sql
 test-sql:
 	go test -v ./src/sql/mysql_test.go ./src/sql/mysql.go
@@ -42,7 +46,7 @@ test-list:
 	go test -v ./src/handler/list_test.go ./src/handler/list.go ./src/handler/sync.go
 
 .PHONY: test
-test: clean-test test-sql test-list
+test: clean-test test-sql test-list test-main
 
 .PHONY: install
 install:
