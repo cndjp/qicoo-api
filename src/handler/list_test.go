@@ -47,10 +47,6 @@ func (m redigoMockConn) GetRedisConnection() redis.Conn {
 	return m.conn
 }
 
-func (m redigoMockConn) Close() error {
-	return m.conn.Close()
-}
-
 func isTravisEnv() bool {
 	if os.Getenv("IS_TRAVISENV") == "true" {
 		return true
@@ -102,22 +98,34 @@ func judgeGetQuestionList(ql handler.QuestionList, t *testing.T) {
 	}
 }
 
-func TestGetQuestionListInTheTravis(t *testing.T) {
-	var mockPool = handler.NewRedisPool()
-	mockPool.PIface = &redigoMockConn{
-		conn: travisTestRedisConn,
+func newMockPool() *handler.RedisPool {
+	m := handler.NewRedisPool()
+	if isTravisEnv() {
+		m.PIface = &redigoMockConn{
+			conn: travisTestRedisConn,
+		}
+	} else {
+		m.PIface = &redigoMockConn{
+			conn: internalTestRedisConn,
+		}
 	}
-	mockPool.Vars = mockMuxVars
 
-	var mockChannel = testEventID
-	mockPool.RedisConn = mockPool.GetInterfaceRedisConnection()
+	m.Vars = mockMuxVars
+
+	m.RedisConn = m.GetInterfaceRedisConnection()
+
+	return m
+}
+
+func TestGetQuestionListInTheTravis(t *testing.T) {
+	var mockPool = newMockPool()
 	defer func() {
 		mockPool.RedisConn.Close()
 
 		// 一律でflushallはやりすぎか？
 		flushallRedis(mockPool.RedisConn)
 	}()
-
+	var mockChannel = testEventID
 	mockQuestionJS, err := json.Marshal(mockQuestion)
 	if err != nil {
 		t.Error(err)
@@ -142,20 +150,14 @@ func TestGetQuestionListInTheTravis(t *testing.T) {
 
 // ローカルのモックでやるやつ
 func TestGetQuestionListInTheLocal(t *testing.T) {
-	var mockPool = handler.NewRedisPool()
-	mockPool.PIface = &redigoMockConn{
-		conn: internalTestRedisConn,
-	}
-	mockPool.Vars = mockMuxVars
-
-	var mockChannel = testEventID
-	mockPool.RedisConn = mockPool.GetInterfaceRedisConnection()
+	var mockPool = newMockPool()
 	defer func() {
 		mockPool.RedisConn.Close()
 
 		// 一律でflushallはやりすぎか？
 		flushallRedis(mockPool.RedisConn)
 	}()
+	var mockChannel = testEventID
 
 	internalTestRedisConn.Command("FLUSHALL").Expect("OK")
 	defer flushallRedis(internalTestRedisConn)
