@@ -41,10 +41,16 @@ type MuxVars struct {
 	Order   string
 }
 
+type PoolInterface interface {
+	GetRedisConnection() (conn redis.Conn)
+	Close() error
+}
+
 type RedisPool struct {
 	Pool             *redis.Pool
 	Vars             MuxVars
 	RedisConn        redis.Conn
+	PIface           PoolInterface
 	QuestionsKey     string
 	LikeSortedKey    string
 	CreatedSortedKey string
@@ -66,6 +72,10 @@ func NewRedisPool() *RedisPool {
 }
 
 // GetRedisConnection
+func (p *RedisPool) GetInterfaceRedisConnection() (conn redis.Conn) {
+	return p.PIface.GetRedisConnection()
+}
+
 func (p *RedisPool) GetRedisConnection() (conn redis.Conn) {
 	return p.Pool.Get()
 }

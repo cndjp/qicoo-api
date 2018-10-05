@@ -1,8 +1,10 @@
 package handler_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"testing"
@@ -10,9 +12,23 @@ import (
 
 	"github.com/cndjp/qicoo-api/src/handler"
 	"github.com/gomodule/redigo/redis"
+	"github.com/rafaeljusto/redigomock"
+	"github.com/sirupsen/logrus"
 )
 
-//var testRedisConn *redigomock.Conn
+var testRedisConn *redigomock.Conn
+
+type redigoMockPool struct {
+	conn redis.Conn
+}
+
+func (m redigoMockPool) GetRedisConnection() redis.Conn {
+	return m.conn
+}
+
+func (m redigoMockPool) Close() error {
+	return m.conn.Close()
+}
 
 const testEventID = "testEventID"
 
@@ -21,7 +37,7 @@ func TestMain(m *testing.M) {
 }
 
 func runTests(m *testing.M) int {
-	/*conn := redigomock.NewConn()
+	conn := redigomock.NewConn()
 	defer func() {
 		conn.Clear()
 		err := conn.Close()
@@ -31,7 +47,7 @@ func runTests(m *testing.M) int {
 	}()
 
 	testRedisConn = conn
-	*/
+
 	return m.Run()
 }
 
@@ -41,12 +57,21 @@ func flushallRedis(conn redis.Conn) {
 	}
 }
 
-func TestGetQuestionList(t *testing.T) {
+func TestGetQuestionListInTheTravis(t *testing.T) {
+	localConn, err := redis.Dial("tcp", "localhost:6379")
+	if err != nil {
+		t.Error(err)
+	}
+
+	mockP := &redigoMockPool{
+		conn: localConn,
+	}
+
 	var pool = &redis.Pool{
 		MaxIdle:     3,
 		MaxActive:   1000,
 		IdleTimeout: 240 * time.Second,
-		Dial:        func() (redis.Conn, error) { return redis.Dial("tcp", "localhost:6379") },
+		Dial:        func() (redis.Conn, error) { return localConn, nil },
 	}
 
 	var mockQuestion = handler.Question{
@@ -62,7 +87,8 @@ func TestGetQuestionList(t *testing.T) {
 	}
 
 	var mockPool = &handler.RedisPool{
-		Pool: pool,
+		PIface: mockP,
+		Pool:   pool,
 		Vars: handler.MuxVars{
 			EventID: testEventID,
 			Start:   1,
@@ -73,7 +99,7 @@ func TestGetQuestionList(t *testing.T) {
 	}
 
 	var mockChannel = testEventID
-	mockPool.RedisConn = mockPool.Pool.Get()
+	mockPool.RedisConn = mockPool.GetInterfaceRedisConnection()
 	defer func() {
 		mockPool.RedisConn.Close()
 
@@ -110,29 +136,14 @@ func TestGetQuestionList(t *testing.T) {
 	}
 }
 
-/* mockからプール読んでくる処理が無理っぽい
-func TestGetQuestionList2(t *testing.T) {
-	s, err := miniredis.Run()
-	if err != nil {
-		panic(err)
-	}
-	defer s.Close()
-	testRedisConn, err := redis.Dial("tcp", s.Addr())
-	if err != nil {
-		panic(err)
+//mockからプール読んでくる処理が無理っぽい
+func TestGetQuestionListInTheLocal(t *testing.T) {
+	mockP := &redigoMockPool{
+		conn: testRedisConn,
 	}
 
-	//testRedisConn.Command("FLUSHALL").Expect("OK")
-	defer flushallRedis(testRedisConn)
-
-	var pool = &redis.Pool{
-		MaxIdle:     3,
-		MaxActive:   1000,
-		IdleTimeout: 240 * time.Second,
-		Dial:        func() (redis.Conn, error) { return testRedisConn, nil },
-	}
-	var mockPool = &handler.RedisPool{
-		Pool: pool,
+	mockRP := handler.RedisPool{
+		PIface: mockP,
 		Vars: handler.MuxVars{
 			EventID: testEventID,
 			Start:   1,
@@ -141,6 +152,17 @@ func TestGetQuestionList2(t *testing.T) {
 			Order:   "asc",
 		},
 	}
+
+	mockRP.RedisConn = mockRP.GetInterfaceRedisConnection()
+	defer func() {
+		mockRP.RedisConn.Close()
+
+		// 一律でflushallはやりすぎか？
+		flushallRedis(mockRP.RedisConn)
+	}()
+
+	testRedisConn.Command("FLUSHALL").Expect("OK")
+	defer flushallRedis(testRedisConn)
 
 	var mockQuestion = handler.Question{
 		ID:        "1",
@@ -181,7 +203,7 @@ func TestGetQuestionList2(t *testing.T) {
 	//SortedSet(CreatedAt)
 	testRedisConn.Do("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID)
 
-	ql := mockPool.GetQuestionList()
+	ql := mockRP.GetQuestionList()
 
 	// QuestionのStructをjsonとして変換
 	jsonBytes, err := json.Marshal(ql)
@@ -196,4 +218,3 @@ func TestGetQuestionList2(t *testing.T) {
 
 	fmt.Println(out.String())
 }
-*/
