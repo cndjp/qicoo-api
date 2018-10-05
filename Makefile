@@ -44,11 +44,11 @@ test-sql:
 
 .PHONY: test-list
 test-list:
-	@if [ -z $(IS_TRAVISENV) ]; \
-		then\
-		go test -v ./src/handler/list_test.go ./src/handler/list.go ./src/handler/sync.go -run TestGetQuestionListInTheLocal ;\
-	else \
+	@if test "$(IS_TRAVISENV)" = "true" ;\
+		then \
 		go test -v ./src/handler/list_test.go ./src/handler/list.go ./src/handler/sync.go -run TestGetQuestionListInTheTravis ;\
+	else \
+		go test -v ./src/handler/list_test.go ./src/handler/list.go ./src/handler/sync.go -run TestGetQuestionListInTheLocal ;\
 	fi
 
 .PHONY: test
