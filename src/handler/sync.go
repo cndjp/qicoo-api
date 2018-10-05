@@ -13,9 +13,6 @@ import (
 
 // これ並列化できる（チャンネル込みで）
 func (p *RedisPool) checkRedisKey() {
-	/* Redisにデータが存在するか確認する。 */
-	//questionsKey, likeSortedKey, createdSortedKey := p.getQuestionsKey()
-
 	// 3種類のKeyが存在しない場合はデータが何かしら不足しているため、データの同期を行う
 	if !redisHasKey(p.RedisConn, p.QuestionsKey) || !redisHasKey(p.RedisConn, p.LikeSortedKey) || !redisHasKey(p.RedisConn, p.CreatedSortedKey) {
 		p.syncQuestion(p.Vars.EventID)
