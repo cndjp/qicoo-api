@@ -14,11 +14,13 @@ func TestMain(t *testing.T) {
 	var createMsg = "hello createFunc"
 	var listMsg = "hello listFunc"
 
-	r := httprouter.MakeRouter(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, createMsg)
-	}, func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, listMsg)
-	})
+	r := httprouter.MakeRouter(
+		func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, createMsg)
+		},
+		func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, listMsg)
+		})
 
 	mockCreateReq := httptest.NewRequest("POST", "/v1/mock/questions", nil)
 	mockCreateRec := httptest.NewRecorder()
