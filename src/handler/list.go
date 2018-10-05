@@ -119,33 +119,34 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (p *RedisPool) selectRedisCommand() (redisCommand string) {
+	switch p.Vars.Order {
+	case "asc":
+		return "ZRANGE"
+	case "desc":
+		return "ZREVRANGE"
+	default:
+		return "ZRANGE"
+	}
+}
+
+func (p *RedisPool) selectRedisSortedKey() (sortedkey string) {
+	switch p.Vars.Sort {
+	case "created_at":
+		return p.CreatedSortedKey
+	case "like":
+		return p.LikeSortedKey
+	default:
+		return p.LikeSortedKey
+	}
+}
+
 // GetQuestionList RedisとDBからデータを取得する
 func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
 	p.getQuestionsKey()
 
-	/* Redisからデータを取得する */
-	// redisのcommand
-	var redisCommand string
-	if p.Vars.Order == "asc" {
-		redisCommand = "ZRANGE"
-	} else if p.Vars.Order == "desc" {
-		redisCommand = "ZREVRANGE"
-	}
-
-	// sort redisのkey
-	var sortedkey string
-	if p.Vars.Sort == "created_at" {
-		sortedkey = p.CreatedSortedKey
-	} else if p.Vars.Sort == "like" {
-		sortedkey = p.LikeSortedKey
-	}
-
-	// debug
-	logrus.Info(redisCommand, sortedkey, p.Vars.Start-1, p.Vars.End-1)
-
 	// API実行時に指定されたSortをRedisで実行
-	var uuidSlice []string
-	uuidSlice, err := redis.Strings(p.RedisConn.Do(redisCommand, sortedkey, p.Vars.Start-1, p.Vars.End-1))
+	uuidSlice, err := redis.Strings(p.RedisConn.Do(p.selectRedisCommand(), p.selectRedisSortedKey(), p.Vars.Start-1, p.Vars.End-1))
 	if err != nil {
 		logrus.Error(err)
 	}
@@ -158,8 +159,7 @@ func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
 		list = append(list, str)
 	}
 
-	var bytesSlice [][]byte
-	bytesSlice, err = redis.ByteSlices(p.RedisConn.Do("HMGET", list...))
+	bytesSlice, err := redis.ByteSlices(p.RedisConn.Do("HMGET", list...))
 	if err != nil {
 		logrus.Error(err)
 	}
@@ -182,16 +182,21 @@ func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
 		questions[i].UpdatedAt = questions[i].UpdatedAt.In(locationTokyo)
 	}
 
-	questionList.Data = questions
-	questionList.Object = "list"
-	questionList.Type = "question"
+	questionList = QuestionList{
+		Data:   questions,
+		Object: "list",
+		Type:   "question",
+	}
+
 	return questionList
 }
 
 func (p *RedisPool) getQuestionsKey() {
-	p.QuestionsKey = "questions_" + p.Vars.EventID
-	p.LikeSortedKey = p.QuestionsKey + "_like"
-	p.CreatedSortedKey = p.QuestionsKey + "_created"
+	p = &RedisPool{
+		QuestionsKey:     "questions_" + p.Vars.EventID,
+		LikeSortedKey:    p.QuestionsKey + "_like",
+		CreatedSortedKey: p.QuestionsKey + "_created",
+	}
 
 	return
 }
