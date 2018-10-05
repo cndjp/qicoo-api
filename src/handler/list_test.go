@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -12,6 +13,7 @@ import (
 	"github.com/cndjp/qicoo-api/src/handler"
 	"github.com/gomodule/redigo/redis"
 	"github.com/rafaeljusto/redigomock"
+	"github.com/sirupsen/logrus"
 )
 
 var testRedisConn *redigomock.Conn
@@ -196,11 +198,18 @@ func TestGetQuestionListInTheLocal(t *testing.T) {
 		t.Error(err)
 	}
 
+	testRedisConn.Command("HGET", "questions_"+mockChannel, 1).Expect(int64(1))
+	fmt.Println(testRedisConn.Do("HGET", "questions_"+mockChannel, 1))
+
 	//SortedSet(Like)
-	testRedisConn.Do("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID)
+	if _, err := testRedisConn.Do("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID); err != nil {
+		t.Error(err)
+	}
 
 	//SortedSet(CreatedAt)
-	testRedisConn.Do("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID)
+	if _, err := testRedisConn.Do("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID); err != nil {
+		t.Error(err)
+	}
 
 	ql := mockRP.GetQuestionList()
 
@@ -211,16 +220,16 @@ func TestGetQuestionListInTheLocal(t *testing.T) {
 		t.Errorf("expected %q to eq %q", expectedComment, mockComment)
 	}
 
-	// QuestionのStructをjsonとして変換
-	// jsonBytes, err := json.Marshal(ql)
-	// if err != nil {
-	// 	logrus.Error(err)
-	// }
+	//QuestionのStructをjsonとして変換
+	jsonBytes, err := json.Marshal(ql)
+	if err != nil {
+		logrus.Error(err)
+	}
 
-	// // 整形用のバッファを作成し、整形を実行
-	// out := new(bytes.Buffer)
-	// // プリフィックスなし、スペース2つでインデント
-	// json.Indent(out, jsonBytes, "", "  ")
+	// 整形用のバッファを作成し、整形を実行
+	out := new(bytes.Buffer)
+	// プリフィックスなし、スペース2つでインデント
+	json.Indent(out, jsonBytes, "", "  ")
 
-	// fmt.Println(out.String())
+	fmt.Println(out.String())
 }
