@@ -16,6 +16,28 @@ import (
 
 var internalTestRedisConn *redigomock.Conn
 
+const testEventID = "testEventID"
+
+var mockQuestion = handler.Question{
+	ID:        "1",
+	Object:    "question",
+	Username:  "anonymous",
+	EventID:   "0",
+	ProgramID: "1",
+	Comment:   "I am mock",
+	CreatedAt: time.Now(),
+	UpdatedAt: time.Now(),
+	Like:      100000,
+}
+
+var mockMuxVars = handler.MuxVars{
+	EventID: testEventID,
+	Start:   1,
+	End:     100,
+	Sort:    "created_at",
+	Order:   "asc",
+}
+
 type redigoMockConn struct {
 	conn redis.Conn
 }
@@ -28,23 +50,31 @@ func (m redigoMockConn) Close() error {
 	return m.conn.Close()
 }
 
-const testEventID = "testEventID"
+func isTravisEnv() bool {
+	if os.Getenv("IS_TRAVISENV") == "true" {
+		return true
+	}
+	return false
+}
 
 func TestMain(m *testing.M) {
 	os.Exit(runTests(m))
 }
 
 func runTests(m *testing.M) int {
-	conn := redigomock.NewConn()
-	defer func() {
-		conn.Clear()
-		err := conn.Close()
-		if err != nil {
-			log.Fatal("runTests: failed launch redis server:", err)
-		}
-	}()
 
-	internalTestRedisConn = conn
+	if !isTravisEnv() {
+		conn := redigomock.NewConn()
+		defer func() {
+			conn.Clear()
+			err := conn.Close()
+			if err != nil {
+				log.Fatal("runTests: failed launch redis server:", err)
+			}
+		}()
+
+		internalTestRedisConn = conn
+	}
 
 	return m.Run()
 }
@@ -55,46 +85,26 @@ func flushallRedis(conn redis.Conn) {
 	}
 }
 
+func judgeGetQuestionList(ql handler.QuestionList, t *testing.T) {
+	mockComment := ql.Data[0].Comment
+	expectedComment := "I am mock"
+
+	if !reflect.DeepEqual(expectedComment, mockComment) {
+		t.Errorf("expected %q to eq %q", expectedComment, mockComment)
+	}
+}
+
 func TestGetQuestionListInTheTravis(t *testing.T) {
 	localConn, err := redis.Dial("tcp", "localhost:6379")
 	if err != nil {
 		t.Error(err)
 	}
 
-	mockP := &redigoMockConn{
+	var mockPool = handler.NewRedisPool()
+	mockPool.PIface = &redigoMockConn{
 		conn: localConn,
 	}
-
-	var pool = &redis.Pool{
-		MaxIdle:     3,
-		MaxActive:   1000,
-		IdleTimeout: 240 * time.Second,
-		Dial:        func() (redis.Conn, error) { return localConn, nil },
-	}
-
-	var mockQuestion = handler.Question{
-		ID:        "1",
-		Object:    "question",
-		Username:  "anonymous",
-		EventID:   "0",
-		ProgramID: "1",
-		Comment:   "I am mock",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		Like:      100000,
-	}
-
-	var mockPool = &handler.RedisPool{
-		PIface: mockP,
-		Pool:   pool,
-		Vars: handler.MuxVars{
-			EventID: testEventID,
-			Start:   1,
-			End:     100,
-			Sort:    "created_at",
-			Order:   "asc",
-		},
-	}
+	mockPool.Vars = mockMuxVars
 
 	var mockChannel = testEventID
 	mockPool.RedisConn = mockPool.GetInterfaceRedisConnection()
@@ -124,57 +134,28 @@ func TestGetQuestionListInTheTravis(t *testing.T) {
 		t.Error(err)
 	}
 
-	ql := mockPool.GetQuestionList()
-
-	mockComment := ql.Data[0].Comment
-	expectedComment := "I am mock"
-
-	if !reflect.DeepEqual(expectedComment, mockComment) {
-		t.Errorf("expected %q to eq %q", expectedComment, mockComment)
-	}
+	judgeGetQuestionList(mockPool.GetQuestionList(), t)
 }
 
 //mockからプール読んでくる処理が無理っぽい
 func TestGetQuestionListInTheLocal(t *testing.T) {
-	mockP := &redigoMockConn{
+	var mockPool = handler.NewRedisPool()
+	mockPool.PIface = &redigoMockConn{
 		conn: internalTestRedisConn,
 	}
+	mockPool.Vars = mockMuxVars
 
-	mockRP := handler.RedisPool{
-		PIface: mockP,
-		Vars: handler.MuxVars{
-			EventID: testEventID,
-			Start:   1,
-			End:     100,
-			Sort:    "created_at",
-			Order:   "asc",
-		},
-	}
-
-	mockRP.RedisConn = mockRP.GetInterfaceRedisConnection()
+	var mockChannel = testEventID
+	mockPool.RedisConn = mockPool.GetInterfaceRedisConnection()
 	defer func() {
-		mockRP.RedisConn.Close()
+		mockPool.RedisConn.Close()
 
 		// 一律でflushallはやりすぎか？
-		flushallRedis(mockRP.RedisConn)
+		flushallRedis(mockPool.RedisConn)
 	}()
 
 	internalTestRedisConn.Command("FLUSHALL").Expect("OK")
 	defer flushallRedis(internalTestRedisConn)
-
-	var mockQuestion = handler.Question{
-		ID:        "1",
-		Object:    "question",
-		Username:  "anonymous",
-		EventID:   "0",
-		ProgramID: "0",
-		Comment:   "I am mock",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		Like:      100000,
-	}
-
-	var mockChannel = testEventID
 
 	mockQuestionJS, _ := json.Marshal(mockQuestion)
 
@@ -196,9 +177,6 @@ func TestGetQuestionListInTheLocal(t *testing.T) {
 		t.Error(err)
 	}
 
-	internalTestRedisConn.Command("HGET", "questions_"+mockChannel, 1).Expect(int64(1))
-	fmt.Println(internalTestRedisConn.Do("HGET", "questions_"+mockChannel, 1))
-
 	//SortedSet(Like)
 	if _, err := internalTestRedisConn.Do("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID); err != nil {
 		t.Error(err)
@@ -209,12 +187,5 @@ func TestGetQuestionListInTheLocal(t *testing.T) {
 		t.Error(err)
 	}
 
-	ql := mockRP.GetQuestionList()
-
-	mockComment := ql.Data[0].Comment
-	expectedComment := "I am mock"
-
-	if !reflect.DeepEqual(expectedComment, mockComment) {
-		t.Errorf("expected %q to eq %q", expectedComment, mockComment)
-	}
+	judgeGetQuestionList(mockPool.GetQuestionList(), t)
 }
