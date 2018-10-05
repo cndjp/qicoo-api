@@ -27,10 +27,11 @@ func init() {
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 	// TODO
 	}
+
+	pool.RedisPool = pool.NewRedisPool()
 }
 
 func main() {
-	pool.RedisPool = pool.NewRedisPool()
 	r := httprouter.MakeRouter(handler.QuestionCreateHandler, handler.QuestionListHandler)
 
 	logrus.Fatal(http.ListenAndServe(":8080", r))
