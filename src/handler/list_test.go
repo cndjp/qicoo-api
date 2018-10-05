@@ -14,6 +14,7 @@ import (
 	"github.com/rafaeljusto/redigomock"
 )
 
+var travisTestRedisConn redis.Conn
 var internalTestRedisConn *redigomock.Conn
 
 const testEventID = "testEventID"
@@ -63,7 +64,14 @@ func TestMain(m *testing.M) {
 
 func runTests(m *testing.M) int {
 
-	if !isTravisEnv() {
+	if isTravisEnv() {
+		conn, err := redis.Dial("tcp", "localhost:6379")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		travisTestRedisConn = conn
+	} else {
 		conn := redigomock.NewConn()
 		defer func() {
 			conn.Clear()
@@ -95,14 +103,9 @@ func judgeGetQuestionList(ql handler.QuestionList, t *testing.T) {
 }
 
 func TestGetQuestionListInTheTravis(t *testing.T) {
-	localConn, err := redis.Dial("tcp", "localhost:6379")
-	if err != nil {
-		t.Error(err)
-	}
-
 	var mockPool = handler.NewRedisPool()
 	mockPool.PIface = &redigoMockConn{
-		conn: localConn,
+		conn: travisTestRedisConn,
 	}
 	mockPool.Vars = mockMuxVars
 
