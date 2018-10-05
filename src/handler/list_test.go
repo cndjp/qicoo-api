@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,7 +12,6 @@ import (
 	"github.com/cndjp/qicoo-api/src/handler"
 	"github.com/gomodule/redigo/redis"
 	"github.com/rafaeljusto/redigomock"
-	"github.com/sirupsen/logrus"
 )
 
 var testRedisConn *redigomock.Conn
@@ -180,13 +178,13 @@ func TestGetQuestionListInTheLocal(t *testing.T) {
 
 	mockQuestionJS, _ := json.Marshal(mockQuestion)
 
-	testRedisConn.Command("HMGET", "questions_"+mockChannel, "1").ExpectSlice([]byte("1"), nil)
-	testRedisConn.Command("HSET", "questions_"+mockChannel, 1, mockQuestionJS).Expect(int64(1))
-	testRedisConn.Command("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID).Expect(int64(1))
-	testRedisConn.Command("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID).Expect(int64(1))
-	testRedisConn.Command("EXISTS", "questions_"+mockChannel).Expect(int64(1))
-	testRedisConn.Command("EXISTS", "questions_"+mockChannel+"_like").Expect(int64(1))
-	testRedisConn.Command("EXISTS", "questions_"+mockChannel+"_created").Expect(int64(1))
+	testRedisConn.Command("HMGET", "questions_"+mockChannel, "1").ExpectSlice(mockQuestionJS, nil)
+	testRedisConn.Command("HSET", "questions_"+mockChannel, 1, mockQuestionJS)                                         //.Expect(int64(1))
+	testRedisConn.Command("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID)                //.Expect(int64(1))
+	testRedisConn.Command("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID) //.Expect(int64(1))
+	testRedisConn.Command("EXISTS", "questions_"+mockChannel)                                                          //.Expect(int64(1))
+	testRedisConn.Command("EXISTS", "questions_"+mockChannel+"_like")                                                  //.Expect(int64(1))
+	testRedisConn.Command("EXISTS", "questions_"+mockChannel+"_created")                                               //.Expect(int64(1))
 	testRedisConn.Command("ZRANGE", "questions_"+mockChannel, 0, 99).Expect([]interface{}{
 		mockQuestion,
 	})
@@ -219,17 +217,4 @@ func TestGetQuestionListInTheLocal(t *testing.T) {
 	if !reflect.DeepEqual(expectedComment, mockComment) {
 		t.Errorf("expected %q to eq %q", expectedComment, mockComment)
 	}
-
-	//QuestionのStructをjsonとして変換
-	jsonBytes, err := json.Marshal(ql)
-	if err != nil {
-		logrus.Error(err)
-	}
-
-	// 整形用のバッファを作成し、整形を実行
-	out := new(bytes.Buffer)
-	// プリフィックスなし、スペース2つでインデント
-	json.Indent(out, jsonBytes, "", "  ")
-
-	fmt.Println(out.String())
 }

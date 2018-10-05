@@ -43,8 +43,12 @@ test-sql:
 
 .PHONY: test-list
 test-list:
-	#go test -v ./src/handler/list_test.go ./src/handler/list.go ./src/handler/sync.go -run TestGetQuestionListInTheLocal
-	go test -v ./src/handler/list_test.go ./src/handler/list.go ./src/handler/sync.go -run TestGetQuestionListInTheTravis
+	@if [ -z $(IS_TRAVISENV) ]; \
+		then\
+		go test -v ./src/handler/list_test.go ./src/handler/list.go ./src/handler/sync.go -run TestGetQuestionListInTheLocal ;\
+	else \
+		go test -v ./src/handler/list_test.go ./src/handler/list.go ./src/handler/sync.go -run TestGetQuestionListInTheTravis ;\
+	fi
 
 .PHONY: test
 test: clean-test test-sql test-list test-main
