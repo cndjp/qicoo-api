@@ -2,12 +2,10 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/cndjp/qicoo-api/src/sql"
 	"github.com/go-gorp/gorp"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -37,23 +35,20 @@ func (p *RedisPool) syncQuestion(eventID string) {
 	m.AddTableWithName(Question{}, "questions")
 	defer m.Db.Close()
 
-	if err != nil {
-		causeErr := errors.Cause(err)
-		fmt.Printf("%+v", causeErr)
-		return
-	}
-
 	var questions []Question
 	_, err = m.Select(&questions, "SELECT * FROM questions WHERE event_id = '"+eventID+"'")
-
 	if err != nil {
-		causeErr := errors.Cause(err)
-		fmt.Printf("%+v", causeErr)
+		logrus.Error(err)
 		return
 	}
 
 	// DB or Redis から取得したデータのtimezoneをUTCからAsia/Tokyoと指定
 	locationTokyo, err := time.LoadLocation("Asia/Tokyo")
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
 	for i := range questions {
 		questions[i].CreatedAt = questions[i].CreatedAt.In(locationTokyo)
 		questions[i].UpdatedAt = questions[i].UpdatedAt.In(locationTokyo)
@@ -65,13 +60,27 @@ func (p *RedisPool) syncQuestion(eventID string) {
 	//DBのデータをRedisに同期する。
 	for _, question := range questions {
 		//HashMap SerializedされたJSONデータを格納
-		serializedJSON, _ := json.Marshal(question)
-		redisConnection.Do("HSET", p.QuestionsKey, question.ID, serializedJSON)
+		serializedJSON, err := json.Marshal(question)
+		if err != nil {
+			logrus.Error(err)
+			return
+		}
+
+		if _, err := redisConnection.Do("HSET", p.QuestionsKey, question.ID, serializedJSON); err != nil {
+			logrus.Error(err)
+			return
+		}
 
 		//SortedSet(Like)
-		redisConnection.Do("ZADD", p.LikeSortedKey, question.Like, question.ID)
+		if _, err := redisConnection.Do("ZADD", p.LikeSortedKey, question.Like, question.ID); err != nil {
+			logrus.Error(err)
+			return
+		}
 
 		//SortedSet(CreatedAt)
-		redisConnection.Do("ZADD", p.CreatedSortedKey, question.CreatedAt.Unix(), question.ID)
+		if _, err := redisConnection.Do("ZADD", p.CreatedSortedKey, question.CreatedAt.Unix(), question.ID); err != nil {
+			logrus.Error(err)
+			return
+		}
 	}
 }

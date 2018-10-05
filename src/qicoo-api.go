@@ -8,6 +8,7 @@ import (
 	"github.com/cndjp/qicoo-api/src/handler"
 	"github.com/cndjp/qicoo-api/src/httprouter"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -30,5 +31,5 @@ func init() {
 func main() {
 	r := httprouter.MakeRouter(handler.QuestionCreateHandler, handler.QuestionListHandler)
 
-	http.ListenAndServe(":8080", r)
+	logrus.Fatal(http.ListenAndServe(":8080", r))
 }

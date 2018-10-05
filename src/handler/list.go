@@ -80,10 +80,12 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 	start, err := strconv.Atoi(vars["start"])
 	if err != nil {
 		logrus.Error(err)
+		return
 	}
 	end, err := strconv.Atoi(vars["end"])
 	if err != nil {
 		logrus.Error(err)
+		return
 	}
 
 	p.Vars = MuxVars{
@@ -108,6 +110,7 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 	jsonBytes, err := json.Marshal(questionList)
 	if err != nil {
 		logrus.Error(err)
+		return
 	}
 
 	// 整形用のバッファを作成し、整形を実行
@@ -149,6 +152,7 @@ func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
 	uuidSlice, err := redis.Strings(p.RedisConn.Do(p.selectRedisCommand(), p.selectRedisSortedKey(), p.Vars.Start-1, p.Vars.End-1))
 	if err != nil {
 		logrus.Error(err)
+		return
 	}
 
 	// RedisのDo関数は、Interface型のSliceしか受け付けないため、makeで生成 (String型のSliceはコンパイルエラー)
@@ -162,6 +166,7 @@ func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
 	bytesSlice, err := redis.ByteSlices(p.RedisConn.Do("HMGET", list...))
 	if err != nil {
 		logrus.Error(err)
+		return
 	}
 
 	var questions []Question
@@ -206,6 +211,7 @@ func redisHasKey(conn redis.Conn, key string) bool {
 	hasInt, err := redis.Int(conn.Do("EXISTS", key))
 	if err != nil {
 		logrus.Error(err)
+		return false
 	}
 
 	var hasKey bool
