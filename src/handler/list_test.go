@@ -140,7 +140,7 @@ func TestGetQuestionListInTheTravis(t *testing.T) {
 	judgeGetQuestionList(mockPool.GetQuestionList(), t)
 }
 
-//mockからプール読んでくる処理が無理っぽい
+// ローカルのモックでやるやつ
 func TestGetQuestionListInTheLocal(t *testing.T) {
 	var mockPool = handler.NewRedisPool()
 	mockPool.PIface = &redigoMockConn{
