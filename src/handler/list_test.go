@@ -59,7 +59,6 @@ func TestMain(m *testing.M) {
 }
 
 func runTests(m *testing.M) int {
-
 	if isTravisEnv() {
 		conn, err := redis.Dial("tcp", "localhost:6379")
 		if err != nil {
@@ -131,17 +130,17 @@ func TestGetQuestionListInTheTravis(t *testing.T) {
 		t.Error(err)
 	}
 
-	if _, err := mockPool.RedisConn.Do("HSET", "questions_"+mockChannel, 1, mockQuestionJS); err != nil {
+	if _, err := travisTestRedisConn.Do("HSET", "questions_"+mockChannel, 1, mockQuestionJS); err != nil {
 		t.Error(err)
 	}
 
 	//SortedSet(Like)
-	if _, err := mockPool.RedisConn.Do("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID); err != nil {
+	if _, err := travisTestRedisConn.Do("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID); err != nil {
 		t.Error(err)
 	}
 
 	//SortedSet(CreatedAt)
-	if _, err := mockPool.RedisConn.Do("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID); err != nil {
+	if _, err := travisTestRedisConn.Do("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID); err != nil {
 		t.Error(err)
 	}
 
