@@ -4,19 +4,18 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis"
 	"github.com/cndjp/qicoo-api/src/handler"
 	"github.com/gomodule/redigo/redis"
-	"github.com/rafaeljusto/redigomock"
 	"github.com/sirupsen/logrus"
 )
 
-var testRedisConn *redigomock.Conn
+//var testRedisConn *redigomock.Conn
 
 const testEventID = "testEventID"
 
@@ -25,7 +24,7 @@ func TestMain(m *testing.M) {
 }
 
 func runTests(m *testing.M) int {
-	conn := redigomock.NewConn()
+	/*conn := redigomock.NewConn()
 	defer func() {
 		conn.Clear()
 		err := conn.Close()
@@ -35,7 +34,7 @@ func runTests(m *testing.M) int {
 	}()
 
 	testRedisConn = conn
-
+	*/
 	return m.Run()
 }
 
@@ -115,7 +114,17 @@ func TestGetQuestionList(t *testing.T) {
 }
 
 func TestGetQuestionList2(t *testing.T) {
-	testRedisConn.Command("FLUSHALL").Expect("OK")
+	s, err := miniredis.Run()
+	if err != nil {
+		panic(err)
+	}
+	defer s.Close()
+	testRedisConn, err := redis.Dial("tcp", s.Addr())
+	if err != nil {
+		panic(err)
+	}
+
+	//testRedisConn.Command("FLUSHALL").Expect("OK")
 	defer flushallRedis(testRedisConn)
 
 	var pool = &redis.Pool{
@@ -151,7 +160,7 @@ func TestGetQuestionList2(t *testing.T) {
 
 	mockQuestionJS, _ := json.Marshal(mockQuestion)
 
-	testRedisConn.Command("HSET", "questions_"+mockChannel, 1, mockQuestionJS).Expect(int64(1))
+	/*testRedisConn.Command("HSET", "questions_"+mockChannel, 1, mockQuestionJS).Expect(int64(1))
 	testRedisConn.Command("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID).Expect(int64(1))
 	testRedisConn.Command("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID).Expect(int64(1))
 	testRedisConn.Command("EXISTS", "questions_"+mockChannel).Expect(int64(1))
@@ -162,7 +171,7 @@ func TestGetQuestionList2(t *testing.T) {
 	})
 	testRedisConn.Command("ZRANGE", "questions_"+mockChannel+"_created", 0, 99).Expect([]interface{}{
 		"1",
-	})
+	})*/
 
 	if _, err := testRedisConn.Do("HSET", "questions_"+mockChannel, 1, mockQuestionJS); err != nil {
 		t.Error(err)
