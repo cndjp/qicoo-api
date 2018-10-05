@@ -179,12 +179,12 @@ func TestGetQuestionListInTheLocal(t *testing.T) {
 	mockQuestionJS, _ := json.Marshal(mockQuestion)
 
 	internalTestRedisConn.Command("HMGET", "questions_"+mockChannel, "1").ExpectSlice(mockQuestionJS, nil)
-	internalTestRedisConn.Command("HSET", "questions_"+mockChannel, 1, mockQuestionJS)                                         //.Expect(int64(1))
-	internalTestRedisConn.Command("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID)                //.Expect(int64(1))
-	internalTestRedisConn.Command("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID) //.Expect(int64(1))
-	internalTestRedisConn.Command("EXISTS", "questions_"+mockChannel)                                                          //.Expect(int64(1))
-	internalTestRedisConn.Command("EXISTS", "questions_"+mockChannel+"_like")                                                  //.Expect(int64(1))
-	internalTestRedisConn.Command("EXISTS", "questions_"+mockChannel+"_created")                                               //.Expect(int64(1))
+	internalTestRedisConn.Command("HSET", "questions_"+mockChannel, 1, mockQuestionJS)
+	internalTestRedisConn.Command("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID)
+	internalTestRedisConn.Command("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID)
+	internalTestRedisConn.Command("EXISTS", "questions_"+mockChannel)
+	internalTestRedisConn.Command("EXISTS", "questions_"+mockChannel+"_like")
+	internalTestRedisConn.Command("EXISTS", "questions_"+mockChannel+"_created")
 	internalTestRedisConn.Command("ZRANGE", "questions_"+mockChannel, 0, 99).Expect([]interface{}{
 		mockQuestion,
 	})
