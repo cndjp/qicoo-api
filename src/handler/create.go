@@ -1,12 +1,12 @@
 package handler
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
-	"encoding/json"
 
 	"github.com/cndjp/qicoo-api/src/sql"
 	"github.com/go-gorp/gorp"
@@ -23,30 +23,15 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	decoder.Decode(&question)
 
-	/* POST REQUEST の BODY に含まれていない値の生成 */
-	// uuid
-	newUUID := uuid.New()
-	question.ID = newUUID.String()
-
-	// object
-	question.Object = "question"
-
-	// username
-	// TODO: Cookieからsessionidを取得して、Redisに存在する場合は、usernameを取得してquestionオブジェクトに格納する
-	question.Username = "anonymous"
-	
-	// event_id URLに含まれている event_id を取得して、questionオブジェクトに格納
-	vars := mux.Vars(r)
-	eventID := vars["event_id"]
-	question.EventID = eventID
-	
-	// いいねの数
-	question.Like = 0
-
-	// 時刻の取得
-	now := time.Now()
-	question.UpdatedAt = now
-	question.CreatedAt = now
+	question = Question{
+		ID:        uuid.New().String(),
+		Object:    "question",
+		Username:  "anonymous",
+		EventID:   mux.Vars(r)["event_id"],
+		Like:      0,
+		UpdatedAt: time.Now(),
+		CreatedAt: time.Now(),
+	}
 
 	// debug
 	w.Write([]byte("comment: " + question.Comment + "\n" +
