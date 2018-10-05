@@ -10,7 +10,7 @@ import (
 )
 
 // これ並列化できる（チャンネル込みで）
-func (p *RedisPool) checkRedisKey() {
+func (p *RedisClient) checkRedisKey() {
 	// 3種類のKeyが存在しない場合はデータが何かしら不足しているため、データの同期を行う
 	if !redisHasKey(p.RedisConn, p.QuestionsKey) || !redisHasKey(p.RedisConn, p.LikeSortedKey) || !redisHasKey(p.RedisConn, p.CreatedSortedKey) {
 		p.syncQuestion(p.Vars.EventID)
@@ -18,8 +18,8 @@ func (p *RedisPool) checkRedisKey() {
 
 }
 
-func (p *RedisPool) syncQuestion(eventID string) {
-	redisConnection := p.GetRedisConnection()
+func (p *RedisClient) syncQuestion(eventID string) {
+	redisConnection := p.GetInterfaceRedisConnection()
 	defer redisConnection.Close()
 
 	// DBからデータを取得

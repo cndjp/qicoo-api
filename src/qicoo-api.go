@@ -7,6 +7,7 @@ import (
 
 	"github.com/cndjp/qicoo-api/src/handler"
 	"github.com/cndjp/qicoo-api/src/httprouter"
+	"github.com/cndjp/qicoo-api/src/pool"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -29,6 +30,7 @@ func init() {
 }
 
 func main() {
+	pool.RedisPool = pool.NewRedisPool()
 	r := httprouter.MakeRouter(handler.QuestionCreateHandler, handler.QuestionListHandler)
 
 	logrus.Fatal(http.ListenAndServe(":8080", r))

@@ -97,8 +97,8 @@ func judgeGetQuestionList(ql handler.QuestionList, t *testing.T) {
 	}
 }
 
-func newMockPool() *handler.RedisPool {
-	m := handler.NewRedisPool()
+func newMockPool() *handler.RedisClient {
+	m := new(handler.RedisClient)
 	if isTravisEnv() {
 		m.PIface = &redigoMockConn{
 			conn: travisTestRedisConn,
@@ -130,17 +130,17 @@ func TestGetQuestionListInTheTravis(t *testing.T) {
 		t.Error(err)
 	}
 
-	if _, err := travisTestRedisConn.Do("HSET", "questions_"+mockChannel, 1, mockQuestionJS); err != nil {
+	if _, err := mockPool.RedisConn.Do("HSET", "questions_"+mockChannel, 1, mockQuestionJS); err != nil {
 		t.Error(err)
 	}
 
 	//SortedSet(Like)
-	if _, err := travisTestRedisConn.Do("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID); err != nil {
+	if _, err := mockPool.RedisConn.Do("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID); err != nil {
 		t.Error(err)
 	}
 
 	//SortedSet(CreatedAt)
-	if _, err := travisTestRedisConn.Do("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID); err != nil {
+	if _, err := mockPool.RedisConn.Do("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID); err != nil {
 		t.Error(err)
 	}
 

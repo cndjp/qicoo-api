@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
+	"github.com/cndjp/qicoo-api/src/pool"
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
@@ -45,8 +45,7 @@ type PoolInterface interface {
 	GetRedisConnection() (conn redis.Conn)
 }
 
-type RedisPool struct {
-	Pool             *redis.Pool
+type RedisClient struct {
 	Vars             MuxVars
 	RedisConn        redis.Conn
 	PIface           PoolInterface
@@ -55,34 +54,19 @@ type RedisPool struct {
 	CreatedSortedKey string
 }
 
-// NewRedisPool RedisConnectionPoolからconnectionを取り出す
-func NewRedisPool() *RedisPool {
-	url := os.Getenv("REDIS_URL")
-
-	// idle connection limit:3    active connection limit:1000
-	return &RedisPool{
-		Pool: &redis.Pool{
-			MaxIdle:     3,
-			MaxActive:   1000,
-			IdleTimeout: 240 * time.Second,
-			Dial:        func() (redis.Conn, error) { return redis.Dial("tcp", url) },
-		},
-	}
-}
-
 // GetRedisConnection
-func (p *RedisPool) GetInterfaceRedisConnection() (conn redis.Conn) {
+func (p *RedisClient) GetInterfaceRedisConnection() (conn redis.Conn) {
 	return p.PIface.GetRedisConnection()
 }
 
-func (p *RedisPool) GetRedisConnection() (conn redis.Conn) {
-	return p.Pool.Get()
+func GetRedisConnection() (conn redis.Conn) {
+	return pool.RedisPool.Get()
 }
 
 // QuestionListHandler QuestionオブジェクトをRedisから取得する。存在しない場合はDBから取得し、Redisへ格納する
 func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
-	// RedisPoolの初期化初期設定
-	var p = NewRedisPool()
+	// RedisClientの初期化初期設定
+	p := new(RedisClient)
 
 	// URLに含まれている event_id を取得
 	vars := mux.Vars(r)
@@ -131,7 +115,7 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (p *RedisPool) selectRedisCommand() (redisCommand string) {
+func (p *RedisClient) selectRedisCommand() (redisCommand string) {
 	switch p.Vars.Order {
 	case "asc":
 		return "ZRANGE"
@@ -142,7 +126,7 @@ func (p *RedisPool) selectRedisCommand() (redisCommand string) {
 	}
 }
 
-func (p *RedisPool) selectRedisSortedKey() (sortedkey string) {
+func (p *RedisClient) selectRedisSortedKey() (sortedkey string) {
 	switch p.Vars.Sort {
 	case "created_at":
 		return p.CreatedSortedKey
@@ -154,7 +138,7 @@ func (p *RedisPool) selectRedisSortedKey() (sortedkey string) {
 }
 
 // GetQuestionList RedisとDBからデータを取得する
-func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
+func (p *RedisClient) GetQuestionList() (questionList QuestionList) {
 	p.getQuestionsKey()
 
 	// API実行時に指定されたSortをRedisで実行
@@ -205,7 +189,7 @@ func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
 	return questionList
 }
 
-func (p *RedisPool) getQuestionsKey() {
+func (p *RedisClient) getQuestionsKey() {
 	p.QuestionsKey = "questions_" + p.Vars.EventID
 	p.LikeSortedKey = p.QuestionsKey + "_like"
 	p.CreatedSortedKey = p.QuestionsKey + "_created"
