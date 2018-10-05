@@ -6,7 +6,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func MakeRouter(createFunc, ListFunc func(w http.ResponseWriter, r *http.Request)) *mux.Router {
+func MakeRouter(createFunc, listFunc func(w http.ResponseWriter, r *http.Request)) *mux.Router {
 	r := mux.NewRouter()
 
 	// route QuestionCreate
