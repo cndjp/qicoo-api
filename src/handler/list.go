@@ -207,19 +207,19 @@ func (p *RedisPool) getQuestionsKey() {
 }
 
 // redisHasKey
-func redisHasKey(conn redis.Conn, key string) bool {
+func redisHasKey(conn redis.Conn, key string) (hasKey bool) {
 	hasInt, err := redis.Int(conn.Do("EXISTS", key))
 	if err != nil {
 		logrus.Error(err)
 		return false
 	}
 
-	var hasKey bool
-	if hasInt == 1 {
+	switch hasInt {
+	case 1:
 		hasKey = true
-	} else {
+	default:
 		hasKey = false
 	}
 
-	return hasKey
+	return
 }

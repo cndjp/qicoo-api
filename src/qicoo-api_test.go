@@ -11,8 +11,8 @@ import (
 )
 
 func TestMain(t *testing.T) {
-	var createMsg = "hello createFunc"
-	var listMsg = "hello listFunc"
+	const createMsg = "hello createFunc"
+	const listMsg = "hello listFunc"
 
 	r := httprouter.MakeRouter(
 		func(w http.ResponseWriter, r *http.Request) {
