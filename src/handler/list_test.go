@@ -91,10 +91,14 @@ func TestGetQuestionList(t *testing.T) {
 	}
 
 	//SortedSet(Like)
-	mockPool.RedisConn.Do("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID)
+	if _, err := mockPool.RedisConn.Do("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID); err != nil {
+		t.Error(err)
+	}
 
 	//SortedSet(CreatedAt)
-	mockPool.RedisConn.Do("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID)
+	if _, err := mockPool.RedisConn.Do("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID); err != nil {
+		t.Error(err)
+	}
 
 	ql := mockPool.GetQuestionList()
 
