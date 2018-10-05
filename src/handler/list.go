@@ -43,7 +43,6 @@ type MuxVars struct {
 
 type PoolInterface interface {
 	GetRedisConnection() (conn redis.Conn)
-	Close() error
 }
 
 type RedisPool struct {
@@ -106,7 +105,7 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 		Order:   vars["order"],
 	}
 
-	p.RedisConn = p.GetRedisConnection()
+	p.RedisConn = p.GetInterfaceRedisConnection()
 	defer p.RedisConn.Close()
 
 	// 多分並列処理できるやつ
