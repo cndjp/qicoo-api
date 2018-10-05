@@ -158,9 +158,6 @@ func TestGetQuestionListInTheLocal(t *testing.T) {
 	}()
 	var mockChannel = testEventID
 
-	internalTestRedisConn.Command("FLUSHALL").Expect("OK")
-	defer flushallRedis(internalTestRedisConn)
-
 	mockQuestionJS, _ := json.Marshal(mockQuestion)
 
 	internalTestRedisConn.Command("HMGET", "questions_"+mockChannel, "1").ExpectSlice(mockQuestionJS, nil)
