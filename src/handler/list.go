@@ -197,11 +197,9 @@ func (p *RedisPool) GetQuestionList() (questionList QuestionList) {
 }
 
 func (p *RedisPool) getQuestionsKey() {
-	p = &RedisPool{
-		QuestionsKey:     "questions_" + p.Vars.EventID,
-		LikeSortedKey:    p.QuestionsKey + "_like",
-		CreatedSortedKey: p.QuestionsKey + "_created",
-	}
+	p.QuestionsKey = "questions_" + p.Vars.EventID
+	p.LikeSortedKey = p.QuestionsKey + "_like"
+	p.CreatedSortedKey = p.QuestionsKey + "_created"
 
 	return
 }

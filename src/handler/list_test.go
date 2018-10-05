@@ -1,8 +1,10 @@
 package handler_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"testing"
@@ -10,9 +12,11 @@ import (
 
 	"github.com/cndjp/qicoo-api/src/handler"
 	"github.com/gomodule/redigo/redis"
+	"github.com/rafaeljusto/redigomock"
+	"github.com/sirupsen/logrus"
 )
 
-//var testRedisConn *redigomock.Conn
+var testRedisConn *redigomock.Conn
 
 const testEventID = "testEventID"
 
@@ -21,7 +25,7 @@ func TestMain(m *testing.M) {
 }
 
 func runTests(m *testing.M) int {
-	/*conn := redigomock.NewConn()
+	conn := redigomock.NewConn()
 	defer func() {
 		conn.Clear()
 		err := conn.Close()
@@ -30,7 +34,7 @@ func runTests(m *testing.M) int {
 		}
 	}()
 
-	testRedisConn = conn*/
+	testRedisConn = conn
 
 	return m.Run()
 }
@@ -110,9 +114,9 @@ func TestGetQuestionList(t *testing.T) {
 	}
 }
 
-/* うまく行かないし、一回TODOにしておこう (＾＝＾)
 func TestGetQuestionList2(t *testing.T) {
-	defer flushallRedis()
+	testRedisConn.Command("FLUSHALL").Expect("OK")
+	defer flushallRedis(testRedisConn)
 
 	var pool = &redis.Pool{
 		MaxIdle:     3,
@@ -147,7 +151,7 @@ func TestGetQuestionList2(t *testing.T) {
 
 	mockQuestionJS, _ := json.Marshal(mockQuestion)
 
-	testRedisConn.Command("HSET", "questions_"+mockChannel, 1, mockQuestion).Expect(int64(1))
+	testRedisConn.Command("HSET", "questions_"+mockChannel, 1, mockQuestionJS).Expect(int64(1))
 	testRedisConn.Command("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID).Expect(int64(1))
 	testRedisConn.Command("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID).Expect(int64(1))
 	testRedisConn.Command("EXISTS", "questions_"+mockChannel).Expect(int64(1))
@@ -185,4 +189,3 @@ func TestGetQuestionList2(t *testing.T) {
 
 	fmt.Println(out.String())
 }
-*/
