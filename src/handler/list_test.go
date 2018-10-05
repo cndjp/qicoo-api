@@ -14,17 +14,17 @@ import (
 	"github.com/rafaeljusto/redigomock"
 )
 
-var testRedisConn *redigomock.Conn
+var internalTestRedisConn *redigomock.Conn
 
-type redigoMockPool struct {
+type redigoMockConn struct {
 	conn redis.Conn
 }
 
-func (m redigoMockPool) GetRedisConnection() redis.Conn {
+func (m redigoMockConn) GetRedisConnection() redis.Conn {
 	return m.conn
 }
 
-func (m redigoMockPool) Close() error {
+func (m redigoMockConn) Close() error {
 	return m.conn.Close()
 }
 
@@ -44,7 +44,7 @@ func runTests(m *testing.M) int {
 		}
 	}()
 
-	testRedisConn = conn
+	internalTestRedisConn = conn
 
 	return m.Run()
 }
@@ -61,7 +61,7 @@ func TestGetQuestionListInTheTravis(t *testing.T) {
 		t.Error(err)
 	}
 
-	mockP := &redigoMockPool{
+	mockP := &redigoMockConn{
 		conn: localConn,
 	}
 
@@ -136,8 +136,8 @@ func TestGetQuestionListInTheTravis(t *testing.T) {
 
 //mockからプール読んでくる処理が無理っぽい
 func TestGetQuestionListInTheLocal(t *testing.T) {
-	mockP := &redigoMockPool{
-		conn: testRedisConn,
+	mockP := &redigoMockConn{
+		conn: internalTestRedisConn,
 	}
 
 	mockRP := handler.RedisPool{
@@ -159,8 +159,8 @@ func TestGetQuestionListInTheLocal(t *testing.T) {
 		flushallRedis(mockRP.RedisConn)
 	}()
 
-	testRedisConn.Command("FLUSHALL").Expect("OK")
-	defer flushallRedis(testRedisConn)
+	internalTestRedisConn.Command("FLUSHALL").Expect("OK")
+	defer flushallRedis(internalTestRedisConn)
 
 	var mockQuestion = handler.Question{
 		ID:        "1",
@@ -178,34 +178,34 @@ func TestGetQuestionListInTheLocal(t *testing.T) {
 
 	mockQuestionJS, _ := json.Marshal(mockQuestion)
 
-	testRedisConn.Command("HMGET", "questions_"+mockChannel, "1").ExpectSlice(mockQuestionJS, nil)
-	testRedisConn.Command("HSET", "questions_"+mockChannel, 1, mockQuestionJS)                                         //.Expect(int64(1))
-	testRedisConn.Command("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID)                //.Expect(int64(1))
-	testRedisConn.Command("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID) //.Expect(int64(1))
-	testRedisConn.Command("EXISTS", "questions_"+mockChannel)                                                          //.Expect(int64(1))
-	testRedisConn.Command("EXISTS", "questions_"+mockChannel+"_like")                                                  //.Expect(int64(1))
-	testRedisConn.Command("EXISTS", "questions_"+mockChannel+"_created")                                               //.Expect(int64(1))
-	testRedisConn.Command("ZRANGE", "questions_"+mockChannel, 0, 99).Expect([]interface{}{
+	internalTestRedisConn.Command("HMGET", "questions_"+mockChannel, "1").ExpectSlice(mockQuestionJS, nil)
+	internalTestRedisConn.Command("HSET", "questions_"+mockChannel, 1, mockQuestionJS)                                         //.Expect(int64(1))
+	internalTestRedisConn.Command("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID)                //.Expect(int64(1))
+	internalTestRedisConn.Command("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID) //.Expect(int64(1))
+	internalTestRedisConn.Command("EXISTS", "questions_"+mockChannel)                                                          //.Expect(int64(1))
+	internalTestRedisConn.Command("EXISTS", "questions_"+mockChannel+"_like")                                                  //.Expect(int64(1))
+	internalTestRedisConn.Command("EXISTS", "questions_"+mockChannel+"_created")                                               //.Expect(int64(1))
+	internalTestRedisConn.Command("ZRANGE", "questions_"+mockChannel, 0, 99).Expect([]interface{}{
 		mockQuestion,
 	})
-	testRedisConn.Command("ZRANGE", "questions_"+mockChannel+"_created", 0, 99).Expect([]interface{}{
+	internalTestRedisConn.Command("ZRANGE", "questions_"+mockChannel+"_created", 0, 99).Expect([]interface{}{
 		"1",
 	})
 
-	if _, err := testRedisConn.Do("HSET", "questions_"+mockChannel, 1, mockQuestionJS); err != nil {
+	if _, err := internalTestRedisConn.Do("HSET", "questions_"+mockChannel, 1, mockQuestionJS); err != nil {
 		t.Error(err)
 	}
 
-	testRedisConn.Command("HGET", "questions_"+mockChannel, 1).Expect(int64(1))
-	fmt.Println(testRedisConn.Do("HGET", "questions_"+mockChannel, 1))
+	internalTestRedisConn.Command("HGET", "questions_"+mockChannel, 1).Expect(int64(1))
+	fmt.Println(internalTestRedisConn.Do("HGET", "questions_"+mockChannel, 1))
 
 	//SortedSet(Like)
-	if _, err := testRedisConn.Do("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID); err != nil {
+	if _, err := internalTestRedisConn.Do("ZADD", "questions_"+mockChannel+"_like", mockQuestion.Like, mockQuestion.ID); err != nil {
 		t.Error(err)
 	}
 
 	//SortedSet(CreatedAt)
-	if _, err := testRedisConn.Do("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID); err != nil {
+	if _, err := internalTestRedisConn.Do("ZADD", "questions_"+mockChannel+"_created", mockQuestion.CreatedAt.Unix(), mockQuestion.ID); err != nil {
 		t.Error(err)
 	}
 
