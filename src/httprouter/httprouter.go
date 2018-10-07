@@ -21,7 +21,7 @@ func MakeRouter(createFunc, listFunc func(w http.ResponseWriter, r *http.Request
 		Queries("end", "{end:[0-9]+}").
 		Queries("sort", "{sort:[a-zA-Z0-9-_]+}").
 		Queries("order", "{order:[a-zA-Z0-9-_]+}").
-		HandlerFunc(ListFunc)
+		HandlerFunc(listFunc)
 
 	return r
 }
