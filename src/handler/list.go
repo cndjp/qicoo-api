@@ -54,6 +54,15 @@ type RedisClient struct {
 	CreatedSortedKey string
 }
 
+// test
+type RedisPoolTest struct {
+}
+
+// test
+func (rp RedisPoolTest) GetRedisConnection() redis.Conn {
+	return pool.RedisPool.Get()
+}
+
 // GetRedisConnection
 func (p *RedisClient) GetInterfaceRedisConnection() (conn redis.Conn) {
 	return p.PIface.GetRedisConnection()
@@ -89,6 +98,8 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 		Order:   vars["order"],
 	}
 
+	m := new(RedisPoolTest)
+	p.PIface = m
 	p.RedisConn = p.GetInterfaceRedisConnection()
 	defer p.RedisConn.Close()
 
