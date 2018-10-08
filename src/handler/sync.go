@@ -10,17 +10,17 @@ import (
 )
 
 // これ並列化できる（チャンネル込みで）
-func (p *RedisClient) checkRedisKey() {
+func (rc *RedisClient) checkRedisKey() {
 	// 3種類のKeyが存在しない場合はデータが何かしら不足しているため、データの同期を行う
-	if !redisHasKey(p.RedisConn, p.QuestionsKey) || !redisHasKey(p.RedisConn, p.LikeSortedKey) || !redisHasKey(p.RedisConn, p.CreatedSortedKey) {
-		p.syncQuestion(p.Vars.EventID)
+	if !redisHasKey(rc.RedisConn, rc.QuestionsKey) || !redisHasKey(rc.RedisConn, rc.LikeSortedKey) || !redisHasKey(rc.RedisConn, rc.CreatedSortedKey) {
+		rc.syncQuestion(rc.Vars.EventID)
 	}
 
 }
 
-func (p *RedisClient) syncQuestion(eventID string) {
-//	redisConnection := p.GetInterfaceRedisConnection()
-//	defer redisConnection.Close()
+func (rc *RedisClient) syncQuestion(eventID string) {
+	//	redisConnection := p.GetInterfaceRedisConnection()
+	//	defer redisConnection.Close()
 
 	// DBからデータを取得
 	var m *gorp.DbMap
@@ -55,7 +55,7 @@ func (p *RedisClient) syncQuestion(eventID string) {
 	}
 
 	//Redisで利用するKeyを取得
-	p.getQuestionsKey()
+	rc.getQuestionsKey()
 
 	//DBのデータをRedisに同期する。
 	for _, question := range questions {
@@ -66,19 +66,19 @@ func (p *RedisClient) syncQuestion(eventID string) {
 			return
 		}
 
-		if _, err := p.RedisConn.Do("HSET", p.QuestionsKey, question.ID, serializedJSON); err != nil {
+		if _, err := rc.RedisConn.Do("HSET", rc.QuestionsKey, question.ID, serializedJSON); err != nil {
 			logrus.Error(err)
 			return
 		}
 
 		//SortedSet(Like)
-		if _, err := p.RedisConn.Do("ZADD", p.LikeSortedKey, question.Like, question.ID); err != nil {
+		if _, err := rc.RedisConn.Do("ZADD", rc.LikeSortedKey, question.Like, question.ID); err != nil {
 			logrus.Error(err)
 			return
 		}
 
 		//SortedSet(CreatedAt)
-		if _, err := p.RedisConn.Do("ZADD", p.CreatedSortedKey, question.CreatedAt.Unix(), question.ID); err != nil {
+		if _, err := rc.RedisConn.Do("ZADD", rc.CreatedSortedKey, question.CreatedAt.Unix(), question.ID); err != nil {
 			logrus.Error(err)
 			return
 		}

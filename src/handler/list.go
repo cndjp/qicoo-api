@@ -41,10 +41,10 @@ type MuxVars struct {
 	Order   string
 }
 
-type PoolInterface interface {
+type RedisClientInterface interface {
 	GetRedisConnection() (conn redis.Conn)
 	selectRedisCommand() (redisCommand string)
-	selectRedisSortedKey() (sortedkey string) 
+	selectRedisSortedKey() (sortedkey string)
 	GetQuestionList() (questionList QuestionList)
 	getQuestionsKey()
 	checkRedisKey()
@@ -60,18 +60,18 @@ type RedisClient struct {
 }
 
 // GetRedisConnection
-func GetInterfaceRedisConnection(p PoolInterface) (conn redis.Conn) {
-	return p.GetRedisConnection()
+func GetInterfaceRedisConnection(rci RedisClientInterface) (conn redis.Conn) {
+	return rci.GetRedisConnection()
 }
 
-func (p *RedisClient) GetRedisConnection() (conn redis.Conn) {
+func (rc *RedisClient) GetRedisConnection() (conn redis.Conn) {
 	return pool.RedisPool.Get()
 }
 
 // QuestionListHandler QuestionオブジェクトをRedisから取得する。存在しない場合はDBから取得し、Redisへ格納する
 func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 	// RedisClientの初期化初期設定
-	p := new(RedisClient)
+	rc := new(RedisClient)
 
 	// URLに含まれている event_id を取得
 	vars := mux.Vars(r)
@@ -86,7 +86,7 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p.Vars = MuxVars{
+	rc.Vars = MuxVars{
 		EventID: vars["event_id"],
 		Start:   start,
 		End:     end,
@@ -94,14 +94,14 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 		Order:   vars["order"],
 	}
 
-	p.RedisConn = GetInterfaceRedisConnection(p)
-	defer p.RedisConn.Close()
+	rc.RedisConn = GetInterfaceRedisConnection(rc)
+	defer rc.RedisConn.Close()
 
 	// 多分並列処理できるやつ
 	/* Redisにデータが存在するか確認する。 */
-	p.checkRedisKey()
+	rc.checkRedisKey()
 
-	questionList := p.GetQuestionList()
+	questionList := rc.GetQuestionList()
 
 	/* JSONの整形 */
 	// QuestionのStructをjsonとして変換
@@ -120,8 +120,8 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (p *RedisClient) selectRedisCommand() (redisCommand string) {
-	switch p.Vars.Order {
+func (rc *RedisClient) selectRedisCommand() (redisCommand string) {
+	switch rc.Vars.Order {
 	case "asc":
 		return "ZRANGE"
 	case "desc":
@@ -131,23 +131,23 @@ func (p *RedisClient) selectRedisCommand() (redisCommand string) {
 	}
 }
 
-func (p *RedisClient) selectRedisSortedKey() (sortedkey string) {
-	switch p.Vars.Sort {
+func (rc *RedisClient) selectRedisSortedKey() (sortedkey string) {
+	switch rc.Vars.Sort {
 	case "created_at":
-		return p.CreatedSortedKey
+		return rc.CreatedSortedKey
 	case "like":
-		return p.LikeSortedKey
+		return rc.LikeSortedKey
 	default:
-		return p.LikeSortedKey
+		return rc.LikeSortedKey
 	}
 }
 
 // GetQuestionList RedisとDBからデータを取得する
-func (p *RedisClient) GetQuestionList() (questionList QuestionList) {
-	p.getQuestionsKey()
+func (rc *RedisClient) GetQuestionList() (questionList QuestionList) {
+	rc.getQuestionsKey()
 
 	// API実行時に指定されたSortをRedisで実行
-	uuidSlice, err := redis.Strings(p.RedisConn.Do(p.selectRedisCommand(), p.selectRedisSortedKey(), p.Vars.Start-1, p.Vars.End-1))
+	uuidSlice, err := redis.Strings(rc.RedisConn.Do(rc.selectRedisCommand(), rc.selectRedisSortedKey(), rc.Vars.Start-1, rc.Vars.End-1))
 	if err != nil {
 		logrus.Error(err)
 		return
@@ -156,12 +156,12 @@ func (p *RedisClient) GetQuestionList() (questionList QuestionList) {
 	// RedisのDo関数は、Interface型のSliceしか受け付けないため、makeで生成 (String型のSliceはコンパイルエラー)
 	// Example) HMGET questions_jks1812 questionID questionID questionID questionID ...
 	var list = make([]interface{}, 0, 20)
-	list = append(list, p.QuestionsKey)
+	list = append(list, rc.QuestionsKey)
 	for _, str := range uuidSlice {
 		list = append(list, str)
 	}
 
-	bytesSlice, err := redis.ByteSlices(p.RedisConn.Do("HMGET", list...))
+	bytesSlice, err := redis.ByteSlices(rc.RedisConn.Do("HMGET", list...))
 	if err != nil {
 		logrus.Error(err)
 		return
@@ -194,10 +194,10 @@ func (p *RedisClient) GetQuestionList() (questionList QuestionList) {
 	return questionList
 }
 
-func (p *RedisClient) getQuestionsKey() {
-	p.QuestionsKey = "questions_" + p.Vars.EventID
-	p.LikeSortedKey = p.QuestionsKey + "_like"
-	p.CreatedSortedKey = p.QuestionsKey + "_created"
+func (rc *RedisClient) getQuestionsKey() {
+	rc.QuestionsKey = "questions_" + rc.Vars.EventID
+	rc.LikeSortedKey = rc.QuestionsKey + "_like"
+	rc.CreatedSortedKey = rc.QuestionsKey + "_created"
 
 	return
 }
