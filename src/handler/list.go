@@ -51,7 +51,6 @@ type PoolInterface interface {
 	syncQuestion(eventID string)
 }
 
-
 type RedisClient struct {
 	Vars             MuxVars
 	RedisConn        redis.Conn
