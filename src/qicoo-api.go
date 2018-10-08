@@ -23,7 +23,7 @@ var (
 
 func init() {
 	app.HelpFlag.Short('h')
-	app.Version(fmt.Sprint("dntk's version: ", version))
+	app.Version(fmt.Sprint("qicoo-api version: ", version))
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 	// TODO
 	}
