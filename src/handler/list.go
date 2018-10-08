@@ -55,20 +55,10 @@ type PoolInterface interface {
 type RedisClient struct {
 	Vars             MuxVars
 	RedisConn        redis.Conn
-//	PIface           PoolInterface
 	QuestionsKey     string
 	LikeSortedKey    string
 	CreatedSortedKey string
 }
-
-// test
-//type RedisPoolTest struct {
-//}
-
-// test
-//func (rp RedisPoolTest) GetRedisConnection() redis.Conn {
-//	return pool.RedisPool.Get()
-//}
 
 // GetRedisConnection
 func GetInterfaceRedisConnection(p PoolInterface) (conn redis.Conn) {
@@ -105,8 +95,6 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 		Order:   vars["order"],
 	}
 
-	//m := new(RedisPoolTest)
-	//p.PIface = m
 	p.RedisConn = GetInterfaceRedisConnection(p)
 	defer p.RedisConn.Close()
 

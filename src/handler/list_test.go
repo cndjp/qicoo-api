@@ -144,20 +144,7 @@ func newMockPool() *handler.RedisClient {
 		m.RedisConn = internalTestRedisConn
 	}	
 
-
-	/*if isTravisEnv() {
-		m = &redigoMockConn{
-			conn: travisTestRedisConn,
-		}
-	} else {
-		m = &redigoMockConn{
-			conn: internalTestRedisConn,
-		}
-	}*/
-
 	m.Vars = mockMuxVars
-
-	m.RedisConn = internalTestRedisConn    //handler.GetInterfaceRedisConnection(m)
 
 	return m
 }
