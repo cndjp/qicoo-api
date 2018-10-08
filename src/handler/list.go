@@ -43,12 +43,19 @@ type MuxVars struct {
 
 type PoolInterface interface {
 	GetRedisConnection() (conn redis.Conn)
+	selectRedisCommand() (redisCommand string)
+	selectRedisSortedKey() (sortedkey string) 
+	GetQuestionList() (questionList QuestionList)
+	getQuestionsKey()
+	checkRedisKey()
+	syncQuestion(eventID string)
 }
+
 
 type RedisClient struct {
 	Vars             MuxVars
 	RedisConn        redis.Conn
-	PIface           PoolInterface
+//	PIface           PoolInterface
 	QuestionsKey     string
 	LikeSortedKey    string
 	CreatedSortedKey string
@@ -64,11 +71,11 @@ func (rp RedisPoolTest) GetRedisConnection() redis.Conn {
 }
 
 // GetRedisConnection
-func (p *RedisClient) GetInterfaceRedisConnection() (conn redis.Conn) {
-	return p.PIface.GetRedisConnection()
+func GetInterfaceRedisConnection(p PoolInterface) (conn redis.Conn) {
+	return p.GetRedisConnection()
 }
 
-func GetRedisConnection() (conn redis.Conn) {
+func (p *RedisClient) GetRedisConnection() (conn redis.Conn) {
 	return pool.RedisPool.Get()
 }
 
@@ -98,9 +105,9 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 		Order:   vars["order"],
 	}
 
-	m := new(RedisPoolTest)
-	p.PIface = m
-	p.RedisConn = p.GetInterfaceRedisConnection()
+	//m := new(RedisPoolTest)
+	//p.PIface = m
+	p.RedisConn = GetInterfaceRedisConnection(p)
 	defer p.RedisConn.Close()
 
 	// 多分並列処理できるやつ

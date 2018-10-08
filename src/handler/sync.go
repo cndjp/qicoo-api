@@ -19,8 +19,8 @@ func (p *RedisClient) checkRedisKey() {
 }
 
 func (p *RedisClient) syncQuestion(eventID string) {
-	redisConnection := p.GetInterfaceRedisConnection()
-	defer redisConnection.Close()
+//	redisConnection := p.GetInterfaceRedisConnection()
+//	defer redisConnection.Close()
 
 	// DBからデータを取得
 	var m *gorp.DbMap
@@ -66,19 +66,19 @@ func (p *RedisClient) syncQuestion(eventID string) {
 			return
 		}
 
-		if _, err := redisConnection.Do("HSET", p.QuestionsKey, question.ID, serializedJSON); err != nil {
+		if _, err := p.RedisConn.Do("HSET", p.QuestionsKey, question.ID, serializedJSON); err != nil {
 			logrus.Error(err)
 			return
 		}
 
 		//SortedSet(Like)
-		if _, err := redisConnection.Do("ZADD", p.LikeSortedKey, question.Like, question.ID); err != nil {
+		if _, err := p.RedisConn.Do("ZADD", p.LikeSortedKey, question.Like, question.ID); err != nil {
 			logrus.Error(err)
 			return
 		}
 
 		//SortedSet(CreatedAt)
-		if _, err := redisConnection.Do("ZADD", p.CreatedSortedKey, question.CreatedAt.Unix(), question.ID); err != nil {
+		if _, err := p.RedisConn.Do("ZADD", p.CreatedSortedKey, question.CreatedAt.Unix(), question.ID); err != nil {
 			logrus.Error(err)
 			return
 		}
