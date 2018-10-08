@@ -46,9 +46,9 @@ test-sql:
 test-list:
 	@if test "$(IS_TRAVISENV)" = "true" ;\
 		then \
-		go test -v ./src/handler/list_test.go ./src/handler/list.go ./src/handler/sync.go -run TestGetQuestionListInTheTravis ;\
+		go test -v ./src/handler/question-list_test.go ./src/handler/question-list.go ./src/handler/question-sync.go -run TestGetQuestionListInTheTravis ;\
 	else \
-		go test -v ./src/handler/list_test.go ./src/handler/list.go ./src/handler/sync.go -run TestGetQuestionListInTheLocal ;\
+		go test -v ./src/handler/question-list_test.go ./src/handler/question-list.go ./src/handler/question-sync.go -run TestGetQuestionListInTheLocal ;\
 	fi
 
 .PHONY: test
