@@ -40,11 +40,11 @@ var mockMuxVars = handler.MuxVars{
 }
 
 type redigoMockConn struct {
-	conn redis.Conn
+	conn         redis.Conn
 	redisCommand string
-	sortedkey string
+	sortedkey    string
 	questionList handler.QuestionList
-	eventID string
+	eventID      string
 }
 
 func (m redigoMockConn) GetRedisConnection() redis.Conn {
@@ -52,27 +52,29 @@ func (m redigoMockConn) GetRedisConnection() redis.Conn {
 }
 
 func (m redigoMockConn) selectRedisCommand() string {
-        return m.redisCommand
+	return m.redisCommand
 }
 func (m redigoMockConn) selectRedisSortedKey() string {
-        return m.sortedkey
+	return m.sortedkey
 }
-func (m redigoMockConn) GetQuestionList() handler.QuestionList{
-        return m.questionList 
+func (m redigoMockConn) GetQuestionList() handler.QuestionList {
+	return m.questionList
+}
+func (m redigoMockConn) SetQuestion(question handler.Question) error {
+	return nil
 }
 
 func (m redigoMockConn) getQuestionsKey() {
-        return
+	return
 }
 
-func (m redigoMockConn) checkRedisKey(){
-        return
+func (m redigoMockConn) checkRedisKey() {
+	return
 }
 
 func (m redigoMockConn) syncQuestion() string {
-        return m.eventID
+	return m.eventID
 }
-
 
 func isTravisEnv() bool {
 	if os.Getenv("IS_TRAVISENV") == "true" {
@@ -130,7 +132,7 @@ func newMockPool() *handler.RedisClient {
 		m.RedisConn = travisTestRedisConn
 	} else {
 		m.RedisConn = internalTestRedisConn
-	}	
+	}
 
 	m.Vars = mockMuxVars
 
