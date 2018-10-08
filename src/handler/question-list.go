@@ -49,6 +49,7 @@ type RedisClientInterface interface {
 	selectRedisCommand() (redisCommand string)
 	selectRedisSortedKey() (sortedkey string)
 	GetQuestionList() (questionList QuestionList)
+	SetQuestion(question Question) error
 	getQuestionsKey()
 	checkRedisKey()
 	syncQuestion(eventID string)
@@ -153,6 +154,7 @@ func (rc *RedisClient) GetQuestionList() (questionList QuestionList) {
 
 	// API実行時に指定されたSortをRedisで実行
 	uuidSlice, err := redis.Strings(rc.RedisConn.Do(rc.selectRedisCommand(), rc.selectRedisSortedKey(), rc.Vars.Start-1, rc.Vars.End-1))
+	println("GetQuestionList:", rc.selectRedisCommand(), rc.selectRedisSortedKey(), rc.Vars.Start-1, rc.Vars.End-1)
 	if err != nil {
 		logrus.Error(err)
 		return

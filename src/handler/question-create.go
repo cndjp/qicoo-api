@@ -23,15 +23,15 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	decoder.Decode(&question)
 
-	question = Question{
-		ID:        uuid.New().String(),
-		Object:    "question",
-		Username:  "anonymous",
-		EventID:   mux.Vars(r)["event_id"],
-		Like:      0,
-		UpdatedAt: time.Now(),
-		CreatedAt: time.Now(),
-	}
+	// POST REQUEST の BODY に含まれていない値の設定
+	question.ID = uuid.New().String()
+	question.Object = "question"
+	question.Username = "anonymous"
+	question.EventID = mux.Vars(r)["event_id"]
+	question.ProgramID = "1" // 未実装のため1固定で生成
+	question.Like = 0
+	question.UpdatedAt = time.Now()
+	question.CreatedAt = time.Now()
 
 	// debug
 	w.Write([]byte("comment: " + question.Comment + "\n" +
@@ -53,22 +53,79 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	m.AddTableWithName(Question{}, "questions")
 	defer m.Db.Close()
 
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	CreateQuestionDB(m, question)
+
+	// RedisClientの初期化初期設定
+	rc := new(RedisClient)
+
+	// URLに含まれている event_id を取得
+	vars := mux.Vars(r)
+	v := new(MuxVars)
+	v.EventID = vars["event_id"]
+	rc.Vars = *v
+
+	CreateQuestionRedis(rc, question)
+}
+
+// CreateQuestionDB DBに質問データの挿入
+func CreateQuestionDB(m *gorp.DbMap, question Question) error {
 	// debug SQL Trace
-	//dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
 	m.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
 
-	if err != nil {
-		logrus.Error(err)
-		return
-	}
-
 	/* データの挿入 */
-	//err = dbmap.Insert(&question)
-	err = m.Insert(&question)
+	err := m.Insert(&question)
 
 	if err != nil {
 		logrus.Error(err)
-		return
+		return err
 	}
 
+	return nil
+}
+
+// SetQuestion QuestionをRedisに格納
+func (rc *RedisClient) SetQuestion(question Question) error {
+	// RedisClient にKeyを生成
+	rc.getQuestionsKey()
+	rc.checkRedisKey()
+
+	//HashMap SerializedされたJSONデータを格納
+	serializedJSON, err := json.Marshal(question)
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
+
+	if _, err := rc.RedisConn.Do("HSET", rc.QuestionsKey, question.ID, serializedJSON); err != nil {
+		logrus.Error(err)
+		return err
+	}
+
+	//SortedSet(Like)
+	if _, err := rc.RedisConn.Do("ZADD", rc.LikeSortedKey, question.Like, question.ID); err != nil {
+		logrus.Error(err)
+		return err
+	}
+
+	//SortedSet(CreatedAt)
+	if _, err := rc.RedisConn.Do("ZADD", rc.CreatedSortedKey, question.CreatedAt.Unix(), question.ID); err != nil {
+		logrus.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+// CreateQuestionRedis Redisに質問データの挿入
+func CreateQuestionRedis(rc *RedisClient, question Question) error {
+	rc.RedisConn = GetInterfaceRedisConnection(rc)
+
+	rc.SetQuestion(question)
+
+	return nil
 }
