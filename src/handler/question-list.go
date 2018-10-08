@@ -33,6 +33,7 @@ type Question struct {
 	Like      int       `json:"like" db:"like_count"`
 }
 
+// MuxVars RequestURLを格納するstruct
 type MuxVars struct {
 	EventID string
 	Start   int
@@ -41,6 +42,8 @@ type MuxVars struct {
 	Order   string
 }
 
+// RedisClientInterface RedisConnectionを扱うinterface
+// testコードのために使用
 type RedisClientInterface interface {
 	GetRedisConnection() (conn redis.Conn)
 	selectRedisCommand() (redisCommand string)
@@ -51,6 +54,7 @@ type RedisClientInterface interface {
 	syncQuestion(eventID string)
 }
 
+// RedisClient interfaceを実装するstruct
 type RedisClient struct {
 	Vars             MuxVars
 	RedisConn        redis.Conn
@@ -59,11 +63,12 @@ type RedisClient struct {
 	CreatedSortedKey string
 }
 
-// GetRedisConnection
+// GetInterfaceRedisConnection RedisのConnectionを取得
 func GetInterfaceRedisConnection(rci RedisClientInterface) (conn redis.Conn) {
 	return rci.GetRedisConnection()
 }
 
+// GetRedisConnection RedisのConnectionを取得
 func (rc *RedisClient) GetRedisConnection() (conn redis.Conn) {
 	return pool.RedisPool.Get()
 }
