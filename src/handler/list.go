@@ -62,13 +62,13 @@ type RedisClient struct {
 }
 
 // test
-type RedisPoolTest struct {
-}
+//type RedisPoolTest struct {
+//}
 
 // test
-func (rp RedisPoolTest) GetRedisConnection() redis.Conn {
-	return pool.RedisPool.Get()
-}
+//func (rp RedisPoolTest) GetRedisConnection() redis.Conn {
+//	return pool.RedisPool.Get()
+//}
 
 // GetRedisConnection
 func GetInterfaceRedisConnection(p PoolInterface) (conn redis.Conn) {

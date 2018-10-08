@@ -41,11 +41,50 @@ var mockMuxVars = handler.MuxVars{
 
 type redigoMockConn struct {
 	conn redis.Conn
+	redisCommand string
+	sortedkey string
+	questionList handler.QuestionList
+	eventID string
 }
+
+
+
+/*type PoolInterface interface {
+        GetRedisConnection() (conn redis.Conn)
+        selectRedisCommand() (redisCommand string)
+        selectRedisSortedKey() (sortedkey string)
+        GetQuestionList() (questionList QuestionList)
+        getQuestionsKey()
+        checkRedisKey()
+        syncQuestion(eventID string)
+}*/
 
 func (m redigoMockConn) GetRedisConnection() redis.Conn {
 	return m.conn
 }
+
+func (m redigoMockConn) selectRedisCommand() string {
+        return m.redisCommand
+}
+func (m redigoMockConn) selectRedisSortedKey() string {
+        return m.sortedkey
+}
+func (m redigoMockConn) GetQuestionList() handler.QuestionList{
+        return m.questionList 
+}
+
+func (m redigoMockConn) getQuestionsKey() {
+        return
+}
+
+func (m redigoMockConn) checkRedisKey(){
+        return
+}
+
+func (m redigoMockConn) syncQuestion() string {
+        return m.eventID
+}
+
 
 func isTravisEnv() bool {
 	if os.Getenv("IS_TRAVISENV") == "true" {
@@ -100,18 +139,25 @@ func judgeGetQuestionList(ql handler.QuestionList, t *testing.T) {
 func newMockPool() *handler.RedisClient {
 	m := new(handler.RedisClient)
 	if isTravisEnv() {
-		m.PIface = &redigoMockConn{
+		m.RedisConn = travisTestRedisConn
+	} else {
+		m.RedisConn = internalTestRedisConn
+	}	
+
+
+	/*if isTravisEnv() {
+		m = &redigoMockConn{
 			conn: travisTestRedisConn,
 		}
 	} else {
-		m.PIface = &redigoMockConn{
+		m = &redigoMockConn{
 			conn: internalTestRedisConn,
 		}
-	}
+	}*/
 
 	m.Vars = mockMuxVars
 
-	m.RedisConn = m.GetInterfaceRedisConnection()
+	m.RedisConn = internalTestRedisConn    //handler.GetInterfaceRedisConnection(m)
 
 	return m
 }
