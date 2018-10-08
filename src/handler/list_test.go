@@ -47,18 +47,6 @@ type redigoMockConn struct {
 	eventID string
 }
 
-
-
-/*type PoolInterface interface {
-        GetRedisConnection() (conn redis.Conn)
-        selectRedisCommand() (redisCommand string)
-        selectRedisSortedKey() (sortedkey string)
-        GetQuestionList() (questionList QuestionList)
-        getQuestionsKey()
-        checkRedisKey()
-        syncQuestion(eventID string)
-}*/
-
 func (m redigoMockConn) GetRedisConnection() redis.Conn {
 	return m.conn
 }
