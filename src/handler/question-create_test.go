@@ -22,11 +22,6 @@ func TestGetQuestionListInTheTravis(t *testing.T) {
 		flushallRedis(mockPool.RedisConn)
 	}()
 
-	// redigomockのテストデータを登録。
-	mockPool.RedisConn.GenericCommand("EXISTS").Expect([]byte("true"))
-	mockPool.RedisConn.GenericCommand("HSET").Expect("OK!")
-	mockPool.RedisConn.GenericCommand("ZADD").Expect("OK!")
-
 	err := handler.CreateQuestionRedis(mockPool, mockQuestion)
 
 	if err != nil {
