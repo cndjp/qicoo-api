@@ -11,32 +11,48 @@ import (
 )
 
 func TestMain(t *testing.T) {
-	const createMsg = "hello createFunc"
-	const listMsg = "hello listFunc"
+	const createQuestionMsg = "hello createQuestionFunc"
+	const listQuestionMsg = "hello listQuestionFunc"
+	const deleteQuestionMsg = "hello deleteQuestionFunc"
 
 	r := httprouter.MakeRouter(
 		func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprint(w, createMsg)
+			fmt.Fprint(w, createQuestionMsg)
 		},
 		func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprint(w, listMsg)
+			fmt.Fprint(w, listQuestionMsg)
+		},
+		func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, deleteQuestionMsg)
 		})
 
+	/* CreateQuestion */
 	mockCreateReq := httptest.NewRequest("POST", "/v1/mock/questions", nil)
 	mockCreateRec := httptest.NewRecorder()
 
 	r.ServeHTTP(mockCreateRec, mockCreateReq)
 
-	if !reflect.DeepEqual(createMsg, mockCreateRec.Body.String()) {
-		t.Errorf("expected %q to eq %q", createMsg, mockCreateRec.Body.String())
+	if !reflect.DeepEqual(createQuestionMsg, mockCreateRec.Body.String()) {
+		t.Errorf("expected %q to eq %q", createQuestionMsg, mockCreateRec.Body.String())
 	}
 
+	/* ListQuestion */
 	mockListReq := httptest.NewRequest("GET", "/v1/mock/questions?start=1&end=100&sort=created_at&order=asc", nil)
 	mockListRec := httptest.NewRecorder()
 
 	r.ServeHTTP(mockListRec, mockListReq)
 
-	if !reflect.DeepEqual(listMsg, mockListRec.Body.String()) {
-		t.Errorf("expected %q to eq %q", listMsg, mockListRec.Body.String())
+	if !reflect.DeepEqual(listQuestionMsg, mockListRec.Body.String()) {
+		t.Errorf("expected %q to eq %q", listQuestionMsg, mockListRec.Body.String())
+	}
+
+	/* DeleteQuestion */
+	mockDeleteReq := httptest.NewRequest("DELETE", "/v1/mock/questions/questionDummyId", nil)
+	mockDeleteRec := httptest.NewRecorder()
+
+	r.ServeHTTP(mockDeleteRec, mockDeleteReq)
+
+	if !reflect.DeepEqual(deleteQuestionMsg, mockDeleteRec.Body.String()) {
+		t.Errorf("expected %q to eq %q", deleteQuestionMsg, mockDeleteRec.Body.String())
 	}
 }

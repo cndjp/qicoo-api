@@ -7,7 +7,7 @@ import (
 )
 
 // MakeRouter muxのroute設定用関数
-func MakeRouter(questionCreateFunc, questionListFunc func(w http.ResponseWriter, r *http.Request)) *mux.Router {
+func MakeRouter(questionCreateFunc, questionListFunc, questionDeleteFunc func(w http.ResponseWriter, r *http.Request)) *mux.Router {
 	r := mux.NewRouter()
 
 	// route QuestionCreate
@@ -23,6 +23,11 @@ func MakeRouter(questionCreateFunc, questionListFunc func(w http.ResponseWriter,
 		Queries("sort", "{sort:[a-zA-Z0-9-_]+}").
 		Queries("order", "{order:[a-zA-Z0-9-_]+}").
 		HandlerFunc(questionListFunc)
+
+	// route QuestionDelete
+	r.Path("/v1/{event_id:[a-zA-Z0-9-_]+}/questions/{question_id:[a-zA-Z0-9-_]+}").
+		Methods("DELETE").
+		HandlerFunc(questionDeleteFunc)
 
 	return r
 }

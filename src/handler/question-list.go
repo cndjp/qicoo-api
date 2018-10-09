@@ -22,7 +22,7 @@ type QuestionList struct {
 
 // Question Questionオブジェクトを扱うためのstruct
 type Question struct {
-	ID        string    `json:"id" db:"id"`
+	ID        string    `json:"id" db:"id, primarykey"`
 	Object    string    `json:"object" db:"object"`
 	Username  string    `json:"username" db:"username"`
 	EventID   string    `json:"event_id" db:"event_id"`
