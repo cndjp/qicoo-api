@@ -54,6 +54,9 @@ test-question-list:
 		  ./src/handler/question-delete.go \
 		  -run TestGetQuestionListInTheTravis ;\
 	else \
+		docker run --name qicoo-api-test-mysql --rm -d -e MYSQL_ROOT_PASSWORD=my-secret-pw -p 3306:3306 mysql:5.6.27 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci;\
+		docker run --name qicoo-api-test-redis --rm -d -p 6379:6379 redis:4.0.10;\
+		sleep 15;\
 		go test -v ./src/handler/question-list_test.go \
 		  ./src/handler/question-handler_test.go \
 		  ./src/handler/question-handler.go \
@@ -62,6 +65,8 @@ test-question-list:
 		  ./src/handler/question-create.go \
 		  ./src/handler/question-delete.go \
 		  -run TestGetQuestionListInTheLocal ;\
+		docker kill qicoo-api-test-mysql;\
+		docker kill qicoo-api-test-redis;\
 	fi
 
 .PHONY: test-question-create

@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cndjp/qicoo-api/src/mysqlib"
 	"github.com/go-gorp/gorp"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -43,20 +42,8 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 		"Like: " + strconv.Itoa(question.Like) + "\n"))
 
 	var m *gorp.DbMap
-	db, err := mysqlib.InitMySQL()
-	if err != nil {
-		logrus.Error(err)
-		return
-	}
-
-	m = mysqlib.MappingDBandTable(db)
-	m.AddTableWithName(Question{}, "questions")
+	m = InitMySQLQuestion()
 	defer m.Db.Close()
-
-	if err != nil {
-		logrus.Error(err)
-		return
-	}
 
 	CreateQuestionDB(m, question)
 
@@ -69,7 +56,7 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	v.EventID = vars["event_id"]
 	rc.Vars = *v
 
-	rc.RedisConn = GetInterfaceRedisConnection(rc)
+	rc.RedisConn = rc.GetRedisConnection()
 	CreateQuestionRedis(rc, question)
 }
 

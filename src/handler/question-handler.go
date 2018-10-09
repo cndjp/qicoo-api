@@ -6,7 +6,9 @@ package handler
 import (
 	"time"
 
+	"github.com/cndjp/qicoo-api/src/mysqlib"
 	"github.com/cndjp/qicoo-api/src/pool"
+	"github.com/go-gorp/gorp"
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
 )
@@ -42,17 +44,17 @@ type MuxVars struct {
 
 // RedisClientInterface RedisConnectionを扱うinterface
 // testコードのために使用
-type RedisClientInterface interface {
-	GetRedisConnection() (conn redis.Conn)
-	selectRedisCommand() (redisCommand string)
-	selectRedisSortedKey() (sortedkey string)
-	GetQuestionList() (questionList QuestionList)
-	SetQuestion(question Question) error
-	DeleteQuestion(question Question) error
-	getQuestionsKey()
-	checkRedisKey()
-	syncQuestion(eventID string)
-}
+//type RedisClientInterface interface {
+//	GetRedisConnection() (conn redis.Conn)
+//	selectRedisCommand() (redisCommand string)
+//	selectRedisSortedKey() (sortedkey string)
+//	GetQuestionList() (questionList QuestionList)
+//	SetQuestion(question Question) error
+//	DeleteQuestion(question Question) error
+//	getQuestionsKey()
+//	checkRedisKey() bool
+//	syncQuestion(m *gorp.DbMap, eventID string)
+//}
 
 // RedisClient interfaceを実装するstruct
 type RedisClient struct {
@@ -64,9 +66,9 @@ type RedisClient struct {
 }
 
 // GetInterfaceRedisConnection RedisClientからConnectionを取得
-func GetInterfaceRedisConnection(rci RedisClientInterface) (conn redis.Conn) {
-	return rci.GetRedisConnection()
-}
+//func GetInterfaceRedisConnection(rci RedisClientInterface) (conn redis.Conn) {
+//	return rci.GetRedisConnection()
+//}
 
 // GetRedisConnection RedisのPoolから、Connectionを取得
 func (rc *RedisClient) GetRedisConnection() (conn redis.Conn) {
@@ -90,4 +92,17 @@ func redisHasKey(conn redis.Conn, key string) (hasKey bool) {
 	}
 
 	return ok
+}
+
+// InitMySQLQuestion DBのdbmapを取得
+func InitMySQLQuestion() *gorp.DbMap {
+	dbmap, err := mysqlib.InitMySQL()
+
+	if err != nil {
+		logrus.Error(err)
+		return nil
+	}
+
+	dbmap.AddTableWithName(Question{}, "questions")
+	return dbmap
 }

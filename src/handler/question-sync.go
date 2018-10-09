@@ -4,39 +4,28 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/cndjp/qicoo-api/src/mysqlib"
+	_ "github.com/cndjp/qicoo-api/src/mysqlib"
 	"github.com/go-gorp/gorp"
 	"github.com/sirupsen/logrus"
 )
 
 // これ並列化できる（チャンネル込みで）
-func (rc *RedisClient) checkRedisKey() {
+func (rc *RedisClient) checkRedisKey() bool {
 	// 3種類のKeyが存在しない場合はデータが何かしら不足しているため、データの同期を行う
 	if !redisHasKey(rc.RedisConn, rc.QuestionsKey) || !redisHasKey(rc.RedisConn, rc.LikeSortedKey) || !redisHasKey(rc.RedisConn, rc.CreatedSortedKey) {
-		rc.syncQuestion(rc.Vars.EventID)
+		//rc.syncQuestion(rc.Vars.EventID)
+		return false
 	}
 
+	return true
 }
 
-func (rc *RedisClient) syncQuestion(eventID string) {
+func (rc *RedisClient) syncQuestion(m *gorp.DbMap, eventID string) {
 	//	redisConnection := p.GetInterfaceRedisConnection()
 	//	defer redisConnection.Close()
 
-	// DBからデータを取得
-	var m *gorp.DbMap
-	db, err := mysqlib.InitMySQL()
-	if err != nil {
-		logrus.Error(err)
-		return
-	}
-
-	m = mysqlib.MappingDBandTable(db)
-
-	m.AddTableWithName(Question{}, "questions")
-	defer m.Db.Close()
-
 	var questions []Question
-	_, err = m.Select(&questions, "SELECT * FROM questions WHERE event_id = '"+eventID+"'")
+	_, err := m.Select(&questions, "SELECT * FROM questions WHERE event_id = '"+eventID+"'")
 	if err != nil {
 		logrus.Error(err)
 		return

@@ -7,6 +7,7 @@ import (
 
 	"github.com/cndjp/qicoo-api/src/handler"
 	"github.com/cndjp/qicoo-api/src/httprouter"
+	"github.com/cndjp/qicoo-api/src/mysqlib"
 	"github.com/cndjp/qicoo-api/src/pool"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/sirupsen/logrus"
@@ -28,7 +29,16 @@ func init() {
 	// TODO
 	}
 
-	pool.RedisPool = pool.NewRedisPool()
+	// Redisの接続情報を与える
+	pool.RedisPool = pool.NewRedisPool(os.Getenv("REDIS_URL"))
+
+	// MySQLの接続情報を与える
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	protocol := "tcp(" + os.Getenv("DB_URL") + ")"
+	dbname := "qicoo"
+
+	mysqlib.SetConnectValue(user, password, protocol, dbname)
 }
 
 func main() {

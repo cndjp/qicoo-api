@@ -10,6 +10,9 @@ import (
 	"time"
 
 	"github.com/cndjp/qicoo-api/src/handler"
+	"github.com/cndjp/qicoo-api/src/mysqlib"
+	"github.com/cndjp/qicoo-api/src/pool"
+	"github.com/go-gorp/gorp"
 	"github.com/gomodule/redigo/redis"
 	"github.com/rafaeljusto/redigomock"
 )
@@ -23,7 +26,7 @@ var mockQuestion = handler.Question{
 	ID:        "1",
 	Object:    "question",
 	Username:  "anonymous",
-	EventID:   "0",
+	EventID:   testEventID,
 	ProgramID: "1",
 	Comment:   "I am mock",
 	CreatedAt: time.Now(),
@@ -96,16 +99,27 @@ func runTests(m *testing.M) int {
 
 		travisTestRedisConn = conn
 	} else {
-		conn := redigomock.NewConn()
-		defer func() {
-			conn.Clear()
-			err := conn.Close()
-			if err != nil {
-				log.Fatal("runTests: failed launch redis server:", err)
-			}
-		}()
+		/* MySQLのテストデータ格納 */
+		// DB and Table
+		mysqlib.SetConnectValue("root", "my-secret-pw", "tcp(127.0.0.1)", "") //DBが存在していないので、この時点ではDB名は指定しない
+		dbmap := handler.InitMySQLQuestion()
+		createDBandTable(dbmap)
 
-		internalTestRedisConn = conn
+		// Rows
+		mysqlib.SetConnectValue("root", "my-secret-pw", "tcp(127.0.0.1)", "qicoo") //DB作成後はDB名を指定し直す必要がある
+		dbmap = handler.InitMySQLQuestion()
+		generateMysqlTestdata(dbmap, mockQuestion)
+
+		//conn := redigomock.NewConn()
+		//defer func() {
+		//	conn.Clear()
+		//	err := conn.Close()
+		//	if err != nil {
+		//		log.Fatal("runTests: failed launch redis server:", err)
+		//	}
+		//}()
+		//
+		//internalTestRedisConn = conn
 	}
 
 	return m.Run()
@@ -128,4 +142,40 @@ func newMockPool() *handler.RedisClient {
 	m.Vars = mockMuxVars
 
 	return m
+}
+
+// newLocalRedisPool LocalのRedisで使用するRedisPoolを生成
+func newLocalRedisPool() *redis.Pool {
+	return pool.NewRedisPool("127.0.0.1:6379")
+}
+
+// handlerのRedisPoolにLocal用のRedisPoolを設定する
+func setLocalRedisPool(redisPool *redis.Pool) {
+	pool.RedisPool = redisPool
+}
+
+// createDBandTable MySQLにDatabaseとTableを作成
+func createDBandTable(dbmap *gorp.DbMap) {
+	/* DBの作成 */
+	dbmap.Exec("CREATE DATABASE qicoo;")
+
+	/* Tableの作成 */
+	dbmap.Exec("CREATE TABLE qicoo.questions (" +
+		"id varchar(36) PRIMARY KEY," +
+		"object text," +
+		"event_id text," +
+		"program_id text," +
+		"username text," +
+		"comment text," +
+		"like_count int(10)," +
+		"created_at DATETIME," +
+		"updated_at DATETIME," +
+		"INDEX (event_id(40), program_id(40))" +
+		");")
+}
+
+// generateMysqlTestdata MySQLのテストデータを生成して格納
+func generateMysqlTestdata(dbmap *gorp.DbMap, question handler.Question) {
+	/* データの挿入 */
+	dbmap.Insert(&question)
 }

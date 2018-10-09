@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/cndjp/qicoo-api/src/mysqlib"
 	"github.com/go-gorp/gorp"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
@@ -24,23 +23,11 @@ func QuestionDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	/* DB connection 取得 */
 	var m *gorp.DbMap
-	db, err := mysqlib.InitMySQL()
-	if err != nil {
-		logrus.Error(err)
-		return
-	}
-
-	m = mysqlib.MappingDBandTable(db)
-	m.AddTableWithName(Question{}, "questions")
+	m = InitMySQLQuestion()
 	defer m.Db.Close()
 
-	if err != nil {
-		logrus.Error(err)
-		return
-	}
-
 	// DBからQuestionを削除
-	err = QuestionDeleteDB(m, q)
+	err := QuestionDeleteDB(m, q)
 	if err != nil {
 		logrus.Error(err)
 		return
@@ -53,8 +40,7 @@ func QuestionDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	v.EventID = vars["event_id"]
 	rc.Vars = *v
 
-	// URLに含まれている event_id を取得
-	rc.RedisConn = GetInterfaceRedisConnection(rc)
+	rc.RedisConn = rc.GetRedisConnection()
 	QuestionDeleteRedis(rc, *q)
 }
 

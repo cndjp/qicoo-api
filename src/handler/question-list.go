@@ -14,9 +14,6 @@ import (
 
 // QuestionListHandler QuestionオブジェクトをRedisから取得する。存在しない場合はDBから取得し、Redisへ格納する
 func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
-	// RedisClientの初期化初期設定
-	rc := new(RedisClient)
-
 	// URLに含まれている event_id を取得
 	vars := mux.Vars(r)
 	start, err := strconv.Atoi(vars["start"])
@@ -30,7 +27,7 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rc.Vars = MuxVars{
+	v := MuxVars{
 		EventID: vars["event_id"],
 		Start:   start,
 		End:     end,
@@ -38,14 +35,8 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 		Order:   vars["order"],
 	}
 
-	rc.RedisConn = GetInterfaceRedisConnection(rc)
-	defer rc.RedisConn.Close()
-
-	// 多分並列処理できるやつ
-	/* Redisにデータが存在するか確認する。 */
-	rc.checkRedisKey()
-
-	questionList := rc.GetQuestionList()
+	var questionList QuestionList
+	questionList = QuestionListFunc(v)
 
 	/* JSONの整形 */
 	// QuestionのStructをjsonとして変換
@@ -62,6 +53,28 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Write([]byte(out.String()))
 
+}
+
+// QuestionListFunc テストコードでテストしやすいように定義
+func QuestionListFunc(vars MuxVars) (questionList QuestionList) {
+	// RedisClientの初期化初期設定
+	rc := new(RedisClient)
+
+	rc.Vars = vars
+
+	rc.RedisConn = rc.GetRedisConnection()
+	defer rc.RedisConn.Close()
+
+	// 多分並列処理できるやつ
+	/* Redisにデータが存在するか確認する。 */
+	yes := rc.checkRedisKey()
+	if !yes {
+		dbmap := InitMySQLQuestion()
+		rc.syncQuestion(dbmap, rc.Vars.EventID)
+	}
+
+	questionList = rc.GetQuestionList()
+	return questionList
 }
 
 func (rc *RedisClient) selectRedisCommand() (redisCommand string) {
