@@ -22,7 +22,7 @@ func TestGetQuestionListInTheTravis(t *testing.T) {
 	defer func() {
 		mockPool.RedisConn.Close()
 
-		// 一律でflushallはやりすぎか？
+		// 一律でflushallはやりすぎか？？
 		flushallRedis(mockPool.RedisConn)
 	}()
 	var mockChannel = testEventID
