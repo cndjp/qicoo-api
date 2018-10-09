@@ -6,13 +6,14 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func MakeRouter(createFunc, listFunc func(w http.ResponseWriter, r *http.Request)) *mux.Router {
+// MakeRouter muxのroute設定用関数
+func MakeRouter(questionCreateFunc, questionListFunc func(w http.ResponseWriter, r *http.Request)) *mux.Router {
 	r := mux.NewRouter()
 
 	// route QuestionCreate
 	r.Path("/v1/{event_id:[a-zA-Z0-9-_]+}/questions").
 		Methods("POST").
-		HandlerFunc(createFunc)
+		HandlerFunc(questionCreateFunc)
 
 	// route QuestionList
 	r.Path("/v1/{event_id:[a-zA-Z0-9-_]+}/questions").
@@ -21,7 +22,7 @@ func MakeRouter(createFunc, listFunc func(w http.ResponseWriter, r *http.Request
 		Queries("end", "{end:[0-9]+}").
 		Queries("sort", "{sort:[a-zA-Z0-9-_]+}").
 		Queries("order", "{order:[a-zA-Z0-9-_]+}").
-		HandlerFunc(listFunc)
+		HandlerFunc(questionListFunc)
 
 	return r
 }
