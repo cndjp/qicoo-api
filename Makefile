@@ -60,7 +60,7 @@ test-question-create:
 	fi
 
 .PHONY: test
-test: clean-test test-sql test-question-list test-question-create test-main
+test: clean-test test-sql test-question-list test-main
 
 .PHONY: install
 install:
