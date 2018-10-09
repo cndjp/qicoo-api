@@ -45,18 +45,38 @@ test-mysqlib:
 test-question-list:
 	@if test "$(TRAVIS)" = "true" ;\
 		then \
-		go test -v ./src/handler/question-list_test.go ./src/handler/question-handler_test.go ./src/handler/question-handler.go  ./src/handler/question-list.go ./src/handler/question-sync.go ./src/handler/question-create.go -run TestGetQuestionListInTheTravis ;\
+		go test -v ./src/handler/question-list_test.go \
+		  ./src/handler/question-handler_test.go \
+		  ./src/handler/question-handler.go \
+		  ./src/handler/question-list.go \
+		  ./src/handler/question-sync.go \
+		  ./src/handler/question-create.go \
+		  ./src/handler/question-delete.go \
+		  -run TestGetQuestionListInTheTravis ;\
 	else \
-		go test -v ./src/handler/question-list_test.go ./src/handler/question-handler_test.go ./src/handler/question-handler.go ./src/handler/question-list.go ./src/handler/question-sync.go ./src/handler/question-create.go -run TestGetQuestionListInTheLocal ;\
+		go test -v ./src/handler/question-list_test.go \
+		  ./src/handler/question-handler_test.go \
+		  ./src/handler/question-handler.go \
+		  ./src/handler/question-list.go \
+		  ./src/handler/question-sync.go \
+		  ./src/handler/question-create.go \
+		  ./src/handler/question-delete.go \
+		  -run TestGetQuestionListInTheLocal ;\
 	fi
 
 .PHONY: test-question-create
 test-question-create:
 	@if test "$(TRAVIS)" = "true" ;\
 		then \
-		go test -v ./src/handler/question-create_test.go ./src/handler/question-handler_test.go ./src/handler/question-list_test.go -run TestCreateQuestionRedisInTheTravis ;\
+		go test -v ./src/handler/question-create_test.go \
+		  ./src/handler/question-handler_test.go \
+		  ./src/handler/question-list_test.go \
+		  -run TestCreateQuestionRedisInTheTravis ;\
 	else \
-		go test -v ./src/handler/question-create_test.go ./src/handler/question-handler_test.go ./src/handler/question-list_test.go -run TestCreateQuestionRedisInTheLocal ;\
+		go test -v ./src/handler/question-create_test.go \
+		  ./src/handler/question-handler_test.go \
+		  ./src/handler/question-list_test.go \
+		  -run TestCreateQuestionRedisInTheLocal ;\
 	fi
 
 .PHONY: test
