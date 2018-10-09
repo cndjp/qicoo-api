@@ -28,7 +28,7 @@ create-dotenv:
 		echo 'DB_PASSWORD=root' >> ./.env ;\
 		echo 'DB_URL=localhost:3306' >> ./.env ;\
 		echo 'REDIS_URL=localhost:6379' >> ./.env ;\
-		echo 'ITRAVIS=' >> ./.env ;\
+		echo 'TRAVIS=' >> ./.env ;\
 	else \
 		echo Not Work. ;\
 	fi
