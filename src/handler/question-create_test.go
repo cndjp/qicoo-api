@@ -12,7 +12,7 @@ import (
 	_ "github.com/rafaeljusto/redigomock"
 )
 
-func TestGetQuestionListInTheTravis(t *testing.T) {
+func TestCreateQuestionRedisInTheTravis(t *testing.T) {
 	var mockPool = newMockPool()
 	defer func() {
 		mockPool.RedisConn.Close()
