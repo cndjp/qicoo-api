@@ -7,6 +7,7 @@ import (
 	"github.com/go-gorp/gorp"
 )
 
+// InitMySQL DBの初期設定
 func InitMySQL() (db *sql.DB, err error) {
 	dbms := "mysql"
 	user := os.Getenv("DB_USER")
@@ -21,7 +22,7 @@ func InitMySQL() (db *sql.DB, err error) {
 	return
 }
 
-// InitMySQLDB 環境変数を利用しDBへのConnectionを取得する(sqldriverでconnection poolが実装されているらしい)
+// MappingDBandTable 環境変数を利用しDBへのConnectionを取得する(sqldriverでconnection poolが実装されているらしい)
 func MappingDBandTable(db *sql.DB) *gorp.DbMap {
 	// structの構造体とDBのTableを紐づける
 	return &gorp.DbMap{Db: db, Dialect: gorp.MySQLDialect{}}
