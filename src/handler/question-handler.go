@@ -48,6 +48,7 @@ type RedisClientInterface interface {
 	selectRedisSortedKey() (sortedkey string)
 	GetQuestionList() (questionList QuestionList)
 	SetQuestion(question Question) error
+	DeleteQuestion(question Question) error
 	getQuestionsKey()
 	checkRedisKey()
 	syncQuestion(eventID string)
