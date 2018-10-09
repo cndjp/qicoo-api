@@ -42,8 +42,8 @@ test-main:
 test-sql:
 	go test -v ./src/sql/mysql_test.go ./src/sql/mysql.go
 
-.PHONY: test-list
-test-list:
+.PHONY: test-question-list
+test-question-list:
 	@if test "$(IS_TRAVISENV)" = "true" ;\
 		then \
 		go test -v ./src/handler/question-list_test.go ./src/handler/question-list.go ./src/handler/question-sync.go ./src/handler/question-create.go -run TestGetQuestionListInTheTravis ;\
@@ -51,8 +51,12 @@ test-list:
 		go test -v ./src/handler/question-list_test.go ./src/handler/question-list.go ./src/handler/question-sync.go ./src/handler/question-create.go -run TestGetQuestionListInTheLocal ;\
 	fi
 
+.PHONY: test-question-create
+test-question-create:
+	go test -v ./src/handler/question-create_test.go ./src/handler/question-list_test.go -run TestCreateQuestionRedisInTheLocal
+
 .PHONY: test
-test: clean-test test-sql test-list test-main
+test: clean-test test-sql test-question-list test-question-create test-main
 
 .PHONY: install
 install:

@@ -64,12 +64,12 @@ type RedisClient struct {
 	CreatedSortedKey string
 }
 
-// GetInterfaceRedisConnection RedisのConnectionを取得
+// GetInterfaceRedisConnection RedisClientからConnectionを取得
 func GetInterfaceRedisConnection(rci RedisClientInterface) (conn redis.Conn) {
 	return rci.GetRedisConnection()
 }
 
-// GetRedisConnection RedisのConnectionを取得
+// GetRedisConnection RedisのPoolから、Connectionを取得
 func (rc *RedisClient) GetRedisConnection() (conn redis.Conn) {
 	return pool.RedisPool.Get()
 }
@@ -211,18 +211,11 @@ func (rc *RedisClient) getQuestionsKey() {
 
 // redisHasKey
 func redisHasKey(conn redis.Conn, key string) (hasKey bool) {
-	hasInt, err := redis.Int(conn.Do("EXISTS", key))
+	ok, err := redis.Bool(conn.Do("EXISTS", key))
 	if err != nil {
 		logrus.Error(err)
 		return false
 	}
 
-	switch hasInt {
-	case 1:
-		hasKey = true
-	default:
-		hasKey = false
-	}
-
-	return
+	return ok
 }

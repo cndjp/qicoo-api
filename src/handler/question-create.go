@@ -69,6 +69,7 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	v.EventID = vars["event_id"]
 	rc.Vars = *v
 
+	rc.RedisConn = GetInterfaceRedisConnection(rc)
 	CreateQuestionRedis(rc, question)
 }
 
@@ -123,9 +124,12 @@ func (rc *RedisClient) SetQuestion(question Question) error {
 
 // CreateQuestionRedis Redisに質問データの挿入
 func CreateQuestionRedis(rc *RedisClient, question Question) error {
-	rc.RedisConn = GetInterfaceRedisConnection(rc)
+	err := rc.SetQuestion(question)
 
-	rc.SetQuestion(question)
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
 
 	return nil
 }
