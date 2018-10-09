@@ -1,0 +1,27 @@
+language: go
+
+go:
+  - "1.11.x"
+
+services:
+  - mysql
+  - redis-server
+  
+before_script:
+  - make clean-all
+  - make dep-install
+  - make deps
+  - make golint-install
+  - make lint
+  - mysql -uroot -e "create database test"
+
+env:
+  global:
+    DB_USER=root
+    DB_PASSWORD=
+    DB_URL=localhost:3306
+    REDIS_URL=localhost:6379
+
+script: 
+  - make
+  - make test

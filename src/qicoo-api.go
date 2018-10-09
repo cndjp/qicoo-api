@@ -14,7 +14,6 @@ import (
 )
 
 var version string
-
 var (
 	app = kingpin.New("qicoo-api", "This application is Qicoo's Backend API")
 

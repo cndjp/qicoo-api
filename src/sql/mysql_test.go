@@ -32,7 +32,7 @@ type mock struct {
 }
 
 func isTravisEnv() bool {
-	if os.Getenv("IS_TRAVISENV") == "true" {
+	if os.Getenv("TRAVIS") == "true" {
 		return true
 	}
 	return false
@@ -45,7 +45,7 @@ func TestMain(m *testing.M) {
 func runTests(m *testing.M) int {
 
 	if isTravisEnv() {
-		mySQLDataSrc = "root@tcp(localhost:3306)"
+		mySQLDataSrc = "root@tcp(localhost:3306)/test"
 	} else {
 		mysqld, err := mysqltest.NewMysqld(nil)
 		if err != nil {
@@ -83,7 +83,7 @@ func TestMappingDBandTable(t *testing.T) {
 	defer db.Close()
 
 	if isTravisEnv() {
-		databaseRow, err := db.Query(`CREATE DATABASE test`)
+		databaseRow, err := db.Query(`CREATE DATABASE IF NOT EXISTS test`)
 		if err != nil {
 			t.Fatal("create databases error:", err)
 		}
