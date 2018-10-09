@@ -18,7 +18,6 @@ func TestCreateQuestionRedisInTheTravis(t *testing.T) {
 		mockPool.RedisConn.Close()
 
 		// 一律でflushallはやりすぎか？
-		internalTestRedisConn.Command("FLUSHALL").Expect("OK")
 		flushallRedis(mockPool.RedisConn)
 	}()
 
