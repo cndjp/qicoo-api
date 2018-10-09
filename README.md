@@ -19,7 +19,8 @@ REDIS_URL=localhost:6379
 IS_TRAVISENV=
 ```
 
-travisでの動作が見たい場合は `IS_TRAVISENV=` を `IS_TRAVISENV=true` と書き換えればよい。
+travisでの動作が見たい場合は `IS_TRAVISENV=` を `IS_TRAVISENV=true` と書き換えればよい。  
+尚、仕組み上 `make` コマンド越しでのみ `.env` を読み込むと言う点は注意されたい(go runとかで動かすと、 `.env` のロードはスキップされる)。
 
 ## ローカル開発とtravis CI環境との差分
 
