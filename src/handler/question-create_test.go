@@ -12,6 +12,23 @@ import (
 	_ "github.com/rafaeljusto/redigomock"
 )
 
+func TestCreateQuestionRedisInTheTravis(t *testing.T) {
+	var mockPool = newMockPool()
+	defer func() {
+		mockPool.RedisConn.Close()
+
+		// 一律でflushallはやりすぎか？
+		internalTestRedisConn.Command("FLUSHALL").Expect("OK")
+		flushallRedis(mockPool.RedisConn)
+	}()
+
+	err := handler.CreateQuestionRedis(mockPool, mockQuestion)
+
+	if err != nil {
+		t.Fatal("create question error:", err)
+	}
+}
+
 func TestCreateQuestionRedisInTheLocal(t *testing.T) {
 	var mockPool = newMockPool()
 	defer func() {
