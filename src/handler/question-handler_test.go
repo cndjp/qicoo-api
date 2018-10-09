@@ -42,43 +42,6 @@ var mockMuxVars = handler.MuxVars{
 	Order:   "asc",
 }
 
-//type redigoMockConn struct {
-//	conn         redis.Conn
-//	redisCommand string
-//	sortedkey    string
-//	questionList handler.QuestionList
-//	eventID      string
-//}
-//
-//func (m redigoMockConn) GetRedisConnection() redis.Conn {
-//	return m.conn
-//}
-//
-//func (m redigoMockConn) selectRedisCommand() string {
-//	return m.redisCommand
-//}
-//func (m redigoMockConn) selectRedisSortedKey() string {
-//	return m.sortedkey
-//}
-//func (m redigoMockConn) GetQuestionList() handler.QuestionList {
-//	return m.questionList
-//}
-//func (m redigoMockConn) SetQuestion(question handler.Question) error {
-//	return nil
-//}
-//
-//func (m redigoMockConn) getQuestionsKey() {
-//	return
-//}
-//
-//func (m redigoMockConn) checkRedisKey() {
-//	return
-//}
-//
-//func (m redigoMockConn) syncQuestion() string {
-//	return m.eventID
-//}
-
 func isTravisEnv() bool {
 	if os.Getenv("TRAVIS") == "true" {
 		return true
@@ -99,6 +62,9 @@ func runTests(m *testing.M) int {
 
 		travisTestRedisConn = conn
 	} else {
+		/* Redisの接続情報設定 */
+		setLocalRedisPool(newLocalRedisPool())
+
 		/* MySQLのテストデータ格納 */
 		// DB and Table
 		mysqlib.SetConnectValue("root", "my-secret-pw", "tcp(127.0.0.1)", "") //DBが存在していないので、この時点ではDB名は指定しない
@@ -109,17 +75,6 @@ func runTests(m *testing.M) int {
 		mysqlib.SetConnectValue("root", "my-secret-pw", "tcp(127.0.0.1)", "qicoo") //DB作成後はDB名を指定し直す必要がある
 		dbmap = handler.InitMySQLQuestion()
 		generateMysqlTestdata(dbmap, mockQuestion)
-
-		//conn := redigomock.NewConn()
-		//defer func() {
-		//	conn.Clear()
-		//	err := conn.Close()
-		//	if err != nil {
-		//		log.Fatal("runTests: failed launch redis server:", err)
-		//	}
-		//}()
-		//
-		//internalTestRedisConn = conn
 	}
 
 	return m.Run()
