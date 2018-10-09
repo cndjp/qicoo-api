@@ -37,42 +37,42 @@ var mockMuxVars = handler.MuxVars{
 	Order:   "asc",
 }
 
-type redigoMockConn struct {
-	conn         redis.Conn
-	redisCommand string
-	sortedkey    string
-	questionList handler.QuestionList
-	eventID      string
-}
-
-func (m redigoMockConn) GetRedisConnection() redis.Conn {
-	return m.conn
-}
-
-func (m redigoMockConn) selectRedisCommand() string {
-	return m.redisCommand
-}
-func (m redigoMockConn) selectRedisSortedKey() string {
-	return m.sortedkey
-}
-func (m redigoMockConn) GetQuestionList() handler.QuestionList {
-	return m.questionList
-}
-func (m redigoMockConn) SetQuestion(question handler.Question) error {
-	return nil
-}
-
-func (m redigoMockConn) getQuestionsKey() {
-	return
-}
-
-func (m redigoMockConn) checkRedisKey() {
-	return
-}
-
-func (m redigoMockConn) syncQuestion() string {
-	return m.eventID
-}
+//type redigoMockConn struct {
+//	conn         redis.Conn
+//	redisCommand string
+//	sortedkey    string
+//	questionList handler.QuestionList
+//	eventID      string
+//}
+//
+//func (m redigoMockConn) GetRedisConnection() redis.Conn {
+//	return m.conn
+//}
+//
+//func (m redigoMockConn) selectRedisCommand() string {
+//	return m.redisCommand
+//}
+//func (m redigoMockConn) selectRedisSortedKey() string {
+//	return m.sortedkey
+//}
+//func (m redigoMockConn) GetQuestionList() handler.QuestionList {
+//	return m.questionList
+//}
+//func (m redigoMockConn) SetQuestion(question handler.Question) error {
+//	return nil
+//}
+//
+//func (m redigoMockConn) getQuestionsKey() {
+//	return
+//}
+//
+//func (m redigoMockConn) checkRedisKey() {
+//	return
+//}
+//
+//func (m redigoMockConn) syncQuestion() string {
+//	return m.eventID
+//}
 
 func isTravisEnv() bool {
 	if os.Getenv("TRAVIS") == "true" {
