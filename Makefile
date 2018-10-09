@@ -17,7 +17,6 @@ SRCS	:= $(shell find . -type f -name '*.go')
 LDFLAGS := -ldflags="-s -X \"main.version=$(VERSION)\""
 
 $(TARGET): $(SRCS)
-	golint src/${NAME}.go
 	go build $(OPTS) $(LDFLAGS) -o bin/$(NAME) src/${NAME}.go
 
 .PHONY: create-dotenv
@@ -29,7 +28,7 @@ create-dotenv:
 		echo 'DB_PASSWORD=root' >> ./.env ;\
 		echo 'DB_URL=localhost:3306' >> ./.env ;\
 		echo 'REDIS_URL=localhost:6379' >> ./.env ;\
-		echo 'IS_TRAVISENV=' >> ./.env ;\
+		echo 'TRAVIS=' >> ./.env ;\
 	else \
 		echo Not Work. ;\
 	fi
@@ -89,6 +88,14 @@ dep:
 .PHONY: dep-install
 dep-install:
 	go get -u github.com/golang/dep/cmd/dep
+
+.PHONY: lint
+lint:
+	golint src/${NAME}.go
+
+.PHONY: golint-install
+golint-install:
+	go get -u github.com/golang/lint/golint
 
 .PHONY: cross-build
 cross-build: deps
