@@ -45,9 +45,9 @@ test-mysqlib:
 test-question-list:
 	@if test "$(TRAVIS)" = "true" ;\
 		then \
-		go test -v ./src/handler/question-list_test.go ./src/handler/question-handler_test.go ./src/handler/question-list.go ./src/handler/question-sync.go ./src/handler/question-create.go -run TestGetQuestionListInTheTravis ;\
+		go test -v ./src/handler/question-list_test.go ./src/handler/question-handler_test.go ./src/handler/question-handler.go  ./src/handler/question-list.go ./src/handler/question-sync.go ./src/handler/question-create.go -run TestGetQuestionListInTheTravis ;\
 	else \
-		go test -v ./src/handler/question-list_test.go ./src/handler/question-handler_test.go ./src/handler/question-list.go ./src/handler/question-sync.go ./src/handler/question-create.go -run TestGetQuestionListInTheLocal ;\
+		go test -v ./src/handler/question-list_test.go ./src/handler/question-handler_test.go ./src/handler/question-handler.go ./src/handler/question-list.go ./src/handler/question-sync.go ./src/handler/question-create.go -run TestGetQuestionListInTheLocal ;\
 	fi
 
 .PHONY: test-question-create

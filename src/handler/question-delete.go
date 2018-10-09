@@ -47,6 +47,17 @@ func QuestionDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// RedisからQurstionを削除
+	// RedisClientの初期化初期設定
+	rc := new(RedisClient)
+
+	// URLに含まれている event_id を取得
+	//vars := mux.Vars(r)
+	//v := new(MuxVars)
+	//v.EventID = vars["event_id"]
+	//rc.Vars = *v
+
+	rc.RedisConn = GetInterfaceRedisConnection(rc)
+	CreateQuestionRedis(rc, *q)
 }
 
 // QuestionDeleteDB DBからQuestionを削除する
@@ -61,5 +72,10 @@ func QuestionDeleteDB(m *gorp.DbMap, q *Question) error {
 		return err
 	}
 
+	return nil
+}
+
+// QuestionDeleteRedis RedisからQuestionを削除する
+func QuestionDeleteRedis(rc *RedisClient, question Question) error {
 	return nil
 }

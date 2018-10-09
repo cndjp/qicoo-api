@@ -1,3 +1,5 @@
+// questionに関するテストコードの共通部分定義
+
 package handler_test
 
 import (
