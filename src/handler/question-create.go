@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cndjp/qicoo-api/src/sql"
+	"github.com/cndjp/qicoo-api/src/mysqlib"
 	"github.com/go-gorp/gorp"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -43,13 +43,13 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 		"Like: " + strconv.Itoa(question.Like) + "\n"))
 
 	var m *gorp.DbMap
-	db, err := sql.InitMySQL()
+	db, err := mysqlib.InitMySQL()
 	if err != nil {
 		logrus.Error(err)
 		return
 	}
 
-	m = sql.MappingDBandTable(db)
+	m = mysqlib.MappingDBandTable(db)
 	m.AddTableWithName(Question{}, "questions")
 	defer m.Db.Close()
 
