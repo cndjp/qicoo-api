@@ -28,7 +28,7 @@ create-dotenv:
 		echo 'DB_PASSWORD=root' >> ./.env ;\
 		echo 'DB_URL=localhost:3306' >> ./.env ;\
 		echo 'REDIS_URL=localhost:6379' >> ./.env ;\
-		echo 'IS_TRAVISENV=' >> ./.env ;\
+		echo 'ITRAVIS=' >> ./.env ;\
 	else \
 		echo Not Work. ;\
 	fi
@@ -43,7 +43,7 @@ test-sql:
 
 .PHONY: test-question-list
 test-question-list:
-	@if test "$(IS_TRAVISENV)" = "true" ;\
+	@if test "$(TRAVIS)" = "true" ;\
 		then \
 		go test -v ./src/handler/question-list_test.go ./src/handler/question-list.go ./src/handler/question-sync.go ./src/handler/question-create.go -run TestGetQuestionListInTheTravis ;\
 	else \
