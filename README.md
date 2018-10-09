@@ -27,7 +27,7 @@ travisでの動作が見たい場合は `IS_TRAVISENV=` を `IS_TRAVISENV=true` 
 環境変数 `IS_TRAVISENV` で判定。
 主に `go test` の動作だと思うが、
 
-- MySQLを今localhostで動いているサービスで叩くのがtravisでモックで叩くのがローカル
-- Redisを今localhostで動いているサービスで叩くのがtravisでモックで叩くのがローカル
+- MySQLを今localhostで動いているサービスで叩くのが`IS_TRAVISENV=true`。モックで叩くのが`IS_TRAVISENV=`
+- Redisを今localhostで動いているサービスで叩くのが`IS_TRAVISENV=true`。モックで叩くのが`IS_TRAVISENV=`
 
 くらいかな。
