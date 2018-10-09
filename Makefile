@@ -52,7 +52,12 @@ test-question-list:
 
 .PHONY: test-question-create
 test-question-create:
-	go test -v ./src/handler/question-create_test.go ./src/handler/question-list_test.go -run TestCreateQuestionRedisInTheLocal
+	@if test "$(TRAVIS)" = "true" ;\
+		then \
+		go test -v ./src/handler/question-create_test.go ./src/handler/question-list_test.go -run TestCreateQuestionRedisInTheRedis ;\
+	else \
+		go test -v ./src/handler/question-create_test.go ./src/handler/question-list_test.go -run TestCreateQuestionRedisInTheLocal ;\
+	fi
 
 .PHONY: test
 test: clean-test test-sql test-question-list test-question-create test-main
