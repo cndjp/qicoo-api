@@ -77,7 +77,7 @@ func (m redigoMockConn) syncQuestion() string {
 }
 
 func isTravisEnv() bool {
-	if os.Getenv("IS_TRAVISENV") == "true" {
+	if os.Getenv("TRAVIS") == "true" {
 		return true
 	}
 	return false
