@@ -5,7 +5,8 @@ go:
 
 services:
   - mysql
-
+  - redis-server
+  
 before_script:
   - make clean-all
   - make dep-install
