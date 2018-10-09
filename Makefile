@@ -37,30 +37,30 @@ create-dotenv:
 test-main:
 	go test -v ./src/qicoo-api_test.go
 
-.PHONY: test-sql
-test-sql:
-	go test -v ./src/sql/mysql_test.go ./src/sql/mysql.go
+.PHONY: test-mysqlib
+test-mysqlib:
+	go test -v ./src/mysqlib/mysqlib_test.go ./src/mysqlib/mysqlib.go
 
 .PHONY: test-question-list
 test-question-list:
 	@if test "$(TRAVIS)" = "true" ;\
 		then \
-		go test -v ./src/handler/question-list_test.go ./src/handler/question-list.go ./src/handler/question-sync.go ./src/handler/question-create.go -run TestGetQuestionListInTheTravis ;\
+		go test -v ./src/handler/question-list_test.go ./src/handler/question-handler_test.go ./src/handler/question-list.go ./src/handler/question-sync.go ./src/handler/question-create.go -run TestGetQuestionListInTheTravis ;\
 	else \
-		go test -v ./src/handler/question-list_test.go ./src/handler/question-list.go ./src/handler/question-sync.go ./src/handler/question-create.go -run TestGetQuestionListInTheLocal ;\
+		go test -v ./src/handler/question-list_test.go ./src/handler/question-handler_test.go ./src/handler/question-list.go ./src/handler/question-sync.go ./src/handler/question-create.go -run TestGetQuestionListInTheLocal ;\
 	fi
 
 .PHONY: test-question-create
 test-question-create:
 	@if test "$(TRAVIS)" = "true" ;\
 		then \
-		go test -v ./src/handler/question-create_test.go ./src/handler/question-list_test.go -run TestCreateQuestionRedisInTheTravis ;\
+		go test -v ./src/handler/question-create_test.go ./src/handler/question-handler_test.go ./src/handler/question-list_test.go -run TestCreateQuestionRedisInTheTravis ;\
 	else \
-		go test -v ./src/handler/question-create_test.go ./src/handler/question-list_test.go -run TestCreateQuestionRedisInTheLocal ;\
+		go test -v ./src/handler/question-create_test.go ./src/handler/question-handler_test.go ./src/handler/question-list_test.go -run TestCreateQuestionRedisInTheLocal ;\
 	fi
 
 .PHONY: test
-test: clean-test test-sql test-question-list test-question-create test-main
+test: clean-test test-mysqlib test-question-list test-question-create test-main
 
 .PHONY: install
 install:
