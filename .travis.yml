@@ -13,8 +13,14 @@ before_script:
   - make deps
   - make golint-install
   - make lint
-  - make create-dotenv
   - mysql -uroot -e "create database test"
+
+env:
+  global:
+    DB_USER=root
+    DB_PASSWORD=
+    DB_URL=localhost:3306
+    REDIS_URL=localhost:6379
 
 script: 
   - make
