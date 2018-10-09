@@ -1,3 +1,7 @@
+[![Travis CI](https://travis-ci.org/cndjp/qicoo-api.svg?branch=master)](https://travis-ci.org/cndjp/qicoo-api)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cndjp/qicoo-api)](https://goreportcard.com/report/github.com/cndjp/qicoo-api)
+
+
 # qicoo-api
 
 test を動かすにはmysqlサービスのインストールが必要です。
