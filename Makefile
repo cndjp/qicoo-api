@@ -54,7 +54,7 @@ test-question-list:
 test-question-create:
 	@if test "$(TRAVIS)" = "true" ;\
 		then \
-		go test -v ./src/handler/question-create_test.go ./src/handler/question-list_test.go -run TestCreateQuestionRedisInTheRedis ;\
+		go test -v ./src/handler/question-create_test.go ./src/handler/question-list_test.go -run TestCreateQuestionRedisInTheTravis ;\
 	else \
 		go test -v ./src/handler/question-create_test.go ./src/handler/question-list_test.go -run TestCreateQuestionRedisInTheLocal ;\
 	fi
