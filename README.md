@@ -6,7 +6,7 @@
 
 test を動かすにはmysqlサービスのインストールが必要です。
 
-## 開発
+## ローカルでの開発
 
 makefileから このレポジトリのトップディレクトリに `.env` で定義された環境定数をインストールするようになっている。  
 本来なら `travis` 越しで環境変数は定義するが、ローカルでの開発にも対応しつつクレデンシャル情報を秘匿する為。
@@ -20,10 +20,10 @@ DB_USER=root
 DB_PASSWORD=root
 DB_URL=localhost:3306
 REDIS_URL=localhost:6379
-IS_TRAVISENV=
+TRAVIS=
 ```
 
-travisでの動作が見たい場合は `IS_TRAVISENV=` を `IS_TRAVISENV=true` と書き換えればよい。  
+travisでの動作が見たい場合は `TRAVIS=` を `TRAVIS=true` と書き換えればよい。  
 尚、仕組み上 `make` コマンド越しでのみ `.env` を読み込むと言う点は注意されたい(go runとかで動かすと、 `.env` のロードはスキップされる)。
 
 ## ローカル開発とtravis CI環境との差分
@@ -31,7 +31,7 @@ travisでの動作が見たい場合は `IS_TRAVISENV=` を `IS_TRAVISENV=true` 
 環境変数 `IS_TRAVISENV` で判定。
 主に `go test` の動作だと思うが、
 
-- MySQLを今localhostで動いているサービスで叩くのが`IS_TRAVISENV=true`。モックで叩くのが`IS_TRAVISENV=`
-- Redisを今localhostで動いているサービスで叩くのが`IS_TRAVISENV=true`。モックで叩くのが`IS_TRAVISENV=`
+- MySQLを今localhostで動いているサービスで叩くのが`TRAVIS=true`。モックで叩くのが`TRAVIS=`
+- Redisを今localhostで動いているサービスで叩くのが`TRAVIS=true`。モックで叩くのが`TRAVIS=`
 
 くらいかな。
