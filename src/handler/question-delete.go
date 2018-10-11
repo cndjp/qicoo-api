@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"bytes"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -9,6 +11,13 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
+
+// QuestionDeleteResponse Questionを削除成功した時にResponseするためのstruct
+type QuestionDeleteResponse struct {
+	QuesitonID string `json:"id"`
+	Type       string `json:"object"`
+	Deleted    bool   `json:"deleted"`
+}
 
 // QuestionDeleteHandler Questionの削除用 関数
 func QuestionDeleteHandler(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +46,29 @@ func QuestionDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO response実装
+	var res QuestionDeleteResponse
+	res.QuesitonID = q.ID
+	res.Type = "question"
+	res.Deleted = true
+
+	/* Response JSONの整形 */
+	// QuestionのStructをjsonとして変換
+	jsonBytes, err := json.Marshal(res)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	// 整形用のバッファを作成し、整形を実行
+	out := new(bytes.Buffer)
+	// プリフィックスなし、スペース2つでインデント
+	err = json.Indent(out, jsonBytes, "", "  ")
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	w.Write([]byte(out.String()))
 }
 
 // QuestionDeleteFunc テストコードでテストしやすいように定義
