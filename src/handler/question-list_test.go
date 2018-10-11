@@ -10,7 +10,7 @@ import (
 
 func judgeGetQuestionList(ql handler.QuestionList, t *testing.T) {
 	mockComment := ql.Data[0].Comment
-	expectedComment := "I am mock"
+	expectedComment := "I am Mock"
 
 	if !reflect.DeepEqual(expectedComment, mockComment) {
 		t.Errorf("expected %q to eq %q", expectedComment, mockComment)
