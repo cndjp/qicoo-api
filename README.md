@@ -4,34 +4,25 @@
 
 # qicoo-api
 
-test を動かすにはmysqlサービスのインストールが必要です。
+test を動かすにはdockerサービスのインストールが必要です。
 
 ## ローカルでの開発
 
-makefileから このレポジトリのトップディレクトリに `.env` で定義された環境定数をインストールするようになっている。  
-本来なら `travis` 越しで環境変数は定義するが、ローカルでの開発にも対応しつつクレデンシャル情報を秘匿する為。
-
-手元になければ以下のコマンドで作れる。  
+testを実行するには、上述のとおりdockerをinstallしている環境で `make test` を実行すると良い。
+なお、実際にMySQLとRedisと連携させて開発したい場合は以下の手順で DockerコンテナとしてMySQL・Redisを起動し、環境変数を設定すると良い
 
 ```
-$ make create-dotenv
-$ cat .env
-DB_USER=root
-DB_PASSWORD=root
-DB_URL=localhost:3306
-REDIS_URL=localhost:6379
-TRAVIS=
+docker run --name qicoo-api-test-mysql --rm -d -e MYSQL_ROOT_PASSWORD=my-secret-pw -p 3306:3306 mysql:5.6.27 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci;
+docker run --name qicoo-api-test-redis --rm -d -p 6379:6379 redis:4.0.10;
+
+export DB_URL="127.0.0.1:3306"
+export DB_USER="root"
+export DB_PASSWORD="my-secret-pw"
+export REDIS_URL="127.0.0.1:6379"
 ```
 
-travisでの動作が見たい場合は `TRAVIS=` を `TRAVIS=true` と書き換えればよい。  
-尚、仕組み上 `make` コマンド越しでのみ `.env` を読み込むと言う点は注意されたい(go runとかで動かすと、 `.env` のロードはスキップされる)。
 
 ## ローカル開発とtravis CI環境との差分
 
-環境変数 `IS_TRAVISENV` で判定。
-主に `go test` の動作だと思うが、
-
-- MySQLを今localhostで動いているサービスで叩くのが`TRAVIS=true`。モックで叩くのが`TRAVIS=`
-- Redisを今localhostで動いているサービスで叩くのが`TRAVIS=true`。モックで叩くのが`TRAVIS=`
-
-くらいかな。
+基本的にローカルとtravis CI間で差分はない。
+両方とも実際のMySQLとRedisを使用してテストデータを読み書きしている。
