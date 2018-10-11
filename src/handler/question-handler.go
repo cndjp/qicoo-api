@@ -33,8 +33,8 @@ type Question struct {
 	Like      int       `json:"like" db:"like_count"`
 }
 
-// MuxVars RequestURLを格納するstruct
-type MuxVars struct {
+// QuestionListMuxVars RequestURLを格納するstruct
+type QuestionListMuxVars struct {
 	EventID string
 	Start   int
 	End     int
@@ -42,28 +42,51 @@ type MuxVars struct {
 	Order   string
 }
 
-// RedisClientInterface RedisConnectionを扱うinterface
-// testコードのために使用
-//type RedisClientInterface interface {
-//	GetRedisConnection() (conn redis.Conn)
-//	selectRedisCommand() (redisCommand string)
-//	selectRedisSortedKey() (sortedkey string)
-//	GetQuestionList() (questionList QuestionList)
-//	SetQuestion(question Question) error
-//	DeleteQuestion(question Question) error
-//	getQuestionsKey()
-//	checkRedisKey() bool
-//	syncQuestion(m *gorp.DbMap, eventID string)
-//}
-
-// RedisClient interfaceを実装するstruct
-type RedisClient struct {
-	Vars             MuxVars
-	RedisConn        redis.Conn
-	QuestionsKey     string
-	LikeSortedKey    string
-	CreatedSortedKey string
+// QuestionCreateMuxVars RequestURLを格納するstruct
+type QuestionCreateMuxVars struct {
+	EventID string
 }
+
+// QuestionDeleteMuxVars RequestURLを格納するstruct
+type QuestionDeleteMuxVars struct {
+	EventID string
+}
+
+// RedisKeys Redis用のkeyを扱うstruct
+type RedisKeys struct {
+	QuestionKey      string //Hash
+	LikeSortedKey    string //SortedSet like順
+	CreatedSortedKey string //SortedSet 作成順
+}
+
+// RedisConnectionInterface RedisのConnectionを扱うInterface
+type RedisConnectionInterface interface {
+	GetRedisConnection() (conn redis.Conn)
+}
+
+// MySQLDbmapInterface MySQLのDBmapを扱うInterface
+type MySQLDbmapInterface interface {
+	GetMySQLConnection() *gorp.DbMap
+}
+
+// RedisManager  RedisConnectionInterfaceの実装
+type RedisManager struct {
+}
+
+// GetRedisConnection RedisConnectionの取得
+func (rc *RedisManager) GetRedisConnection() (conn redis.Conn) {
+	return pool.RedisPool.Get()
+}
+
+/* 一時コメントアウト */
+// RedisClient interfaceを実装するstruct
+//type RedisClient struct {
+//	Vars             MuxVars
+//	RedisConn        redis.Conn
+//	QuestionsKey     string
+//	LikeSortedKey    string
+//	CreatedSortedKey string
+//}
 
 // GetInterfaceRedisConnection RedisClientからConnectionを取得
 //func GetInterfaceRedisConnection(rci RedisClientInterface) (conn redis.Conn) {
@@ -71,16 +94,26 @@ type RedisClient struct {
 //}
 
 // GetRedisConnection RedisのPoolから、Connectionを取得
-func (rc *RedisClient) GetRedisConnection() (conn redis.Conn) {
-	return pool.RedisPool.Get()
-}
+//func (rc *RedisClient) GetRedisConnection() (conn redis.Conn) {
+//	return pool.RedisPool.Get()
+//}
 
-func (rc *RedisClient) getQuestionsKey() {
-	rc.QuestionsKey = "questions_" + rc.Vars.EventID
-	rc.LikeSortedKey = rc.QuestionsKey + "_like"
-	rc.CreatedSortedKey = rc.QuestionsKey + "_created"
+//func (rc *RedisClient) getQuestionsKey() {
+//	rc.QuestionsKey = "questions_" + rc.Vars.EventID
+//	rc.LikeSortedKey = rc.QuestionsKey + "_like"
+//	rc.CreatedSortedKey = rc.QuestionsKey + "_created"
+//
+//	return
+//}
 
-	return
+// GetRedisKeys Redisで使用するkeyを取得
+func GetRedisKeys(eventID string) RedisKeys {
+	var k RedisKeys
+	k.QuestionKey = "questions_" + eventID
+	k.LikeSortedKey = k.QuestionKey + "_like"
+	k.CreatedSortedKey = k.QuestionKey + "_created"
+
+	return k
 }
 
 // redisHasKey

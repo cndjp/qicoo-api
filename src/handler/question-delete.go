@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/go-gorp/gorp"
+	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
@@ -34,14 +35,14 @@ func QuestionDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// RedisからQurstionを削除
-	// RedisClientの初期化初期設定
-	rc := new(RedisClient)
-	v := new(MuxVars)
-	v.EventID = vars["event_id"]
-	rc.Vars = *v
+	var rci RedisConnectionInterface
+	rci = new(RedisManager)
 
-	rc.RedisConn = rc.GetRedisConnection()
-	QuestionDeleteRedis(rc, *q)
+	v := QuestionDeleteMuxVars{
+		EventID: vars["event_id"],
+	}
+
+	QuestionDeleteRedis(rci, v, *q)
 }
 
 // QuestionDeleteDB DBからQuestionを削除する
@@ -60,8 +61,12 @@ func QuestionDeleteDB(m *gorp.DbMap, q *Question) error {
 }
 
 // QuestionDeleteRedis RedisからQuestionを削除する
-func QuestionDeleteRedis(rc *RedisClient, question Question) error {
-	err := rc.DeleteQuestion(question)
+func QuestionDeleteRedis(rci RedisConnectionInterface, v QuestionDeleteMuxVars, question Question) error {
+	// RedisのConnection生成
+	redisConn := rci.GetRedisConnection()
+	defer redisConn.Close()
+
+	err := DeleteQuestion(redisConn, v, question)
 
 	if err != nil {
 		logrus.Error(err)
@@ -72,28 +77,28 @@ func QuestionDeleteRedis(rc *RedisClient, question Question) error {
 }
 
 // DeleteQuestion RedisからQuestionを削除するメソッド
-func (rc *RedisClient) DeleteQuestion(question Question) error {
+func DeleteQuestion(conn redis.Conn, v QuestionDeleteMuxVars, question Question) error {
 	// RedisClient にKeyを生成
-	rc.getQuestionsKey()
-	rc.checkRedisKey()
+	rks := GetRedisKeys(v.EventID)
+	checkRedisKey(conn, rks)
 
 	//HashMap
-	println("DeleteQuestion:", "HDEL", rc.QuestionsKey, question.ID)
-	if _, err := rc.RedisConn.Do("HDEL", rc.QuestionsKey, question.ID); err != nil {
+	println("DeleteQuestion:", "HDEL", rks.QuestionKey, question.ID)
+	if _, err := conn.Do("HDEL", rks.QuestionKey, question.ID); err != nil {
 		logrus.Error(err)
 		return err
 	}
 
 	//SortedSet Created_at
-	println("DeleteQuestion:", "ZREM", rc.CreatedSortedKey, question.ID)
-	if _, err := rc.RedisConn.Do("ZREM", rc.CreatedSortedKey, question.ID); err != nil {
+	println("DeleteQuestion:", "ZREM", rks.CreatedSortedKey, question.ID)
+	if _, err := conn.Do("ZREM", rks.CreatedSortedKey, question.ID); err != nil {
 		logrus.Error(err)
 		return err
 	}
 
 	//SortedSet like
-	println("DeleteQuestion:", "ZREM", rc.LikeSortedKey, question.ID)
-	if _, err := rc.RedisConn.Do("ZREM", rc.LikeSortedKey, question.ID); err != nil {
+	println("DeleteQuestion:", "ZREM", rks.LikeSortedKey, question.ID)
+	if _, err := conn.Do("ZREM", rks.LikeSortedKey, question.ID); err != nil {
 		logrus.Error(err)
 		return err
 	}

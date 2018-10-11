@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-gorp/gorp"
+	"github.com/gomodule/redigo/redis"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
@@ -47,17 +48,16 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	CreateQuestionDB(m, question)
 
-	// RedisClientの初期化初期設定
-	rc := new(RedisClient)
+	var rci RedisConnectionInterface
+	rci = new(RedisManager)
 
 	// URLに含まれている event_id を取得
 	vars := mux.Vars(r)
-	v := new(MuxVars)
-	v.EventID = vars["event_id"]
-	rc.Vars = *v
+	v := QuestionCreateMuxVars{
+		EventID: vars["event_id"],
+	}
 
-	rc.RedisConn = rc.GetRedisConnection()
-	CreateQuestionRedis(rc, question)
+	CreateQuestionRedis(rci, v, question)
 }
 
 // CreateQuestionDB DBに質問データの挿入
@@ -77,10 +77,11 @@ func CreateQuestionDB(m *gorp.DbMap, question Question) error {
 }
 
 // SetQuestion QuestionをRedisに格納
-func (rc *RedisClient) SetQuestion(question Question) error {
+func SetQuestion(redisConn redis.Conn, v QuestionCreateMuxVars, question Question) error {
 	// RedisClient にKeyを生成
-	rc.getQuestionsKey()
-	rc.checkRedisKey()
+	rks := GetRedisKeys(v.EventID)
+	// TODO
+	//checkRedisKey()
 
 	//HashMap SerializedされたJSONデータを格納
 	serializedJSON, err := json.Marshal(question)
@@ -89,19 +90,19 @@ func (rc *RedisClient) SetQuestion(question Question) error {
 		return err
 	}
 
-	if _, err := rc.RedisConn.Do("HSET", rc.QuestionsKey, question.ID, serializedJSON); err != nil {
+	if _, err := redisConn.Do("HSET", rks.QuestionKey, question.ID, serializedJSON); err != nil {
 		logrus.Error(err)
 		return err
 	}
 
 	//SortedSet(Like)
-	if _, err := rc.RedisConn.Do("ZADD", rc.LikeSortedKey, question.Like, question.ID); err != nil {
+	if _, err := redisConn.Do("ZADD", rks.LikeSortedKey, question.Like, question.ID); err != nil {
 		logrus.Error(err)
 		return err
 	}
 
 	//SortedSet(CreatedAt)
-	if _, err := rc.RedisConn.Do("ZADD", rc.CreatedSortedKey, question.CreatedAt.Unix(), question.ID); err != nil {
+	if _, err := redisConn.Do("ZADD", rks.CreatedSortedKey, question.CreatedAt.Unix(), question.ID); err != nil {
 		logrus.Error(err)
 		return err
 	}
@@ -110,8 +111,12 @@ func (rc *RedisClient) SetQuestion(question Question) error {
 }
 
 // CreateQuestionRedis Redisに質問データの挿入
-func CreateQuestionRedis(rc *RedisClient, question Question) error {
-	err := rc.SetQuestion(question)
+func CreateQuestionRedis(rci RedisConnectionInterface, v QuestionCreateMuxVars, question Question) error {
+	// RedisのConnection生成
+	redisConn := rci.GetRedisConnection()
+	defer redisConn.Close()
+
+	err := SetQuestion(redisConn, v, question)
 
 	if err != nil {
 		logrus.Error(err)
