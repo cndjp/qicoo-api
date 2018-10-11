@@ -53,12 +53,19 @@ func runTests(m *testing.M) int {
 	mockRedisPool = mockNewRedisPool()
 
 	/* MySQLのテストデータ格納 */
+	var dbtestpasswd string
+	if isTravisEnv() {
+		dbtestpasswd = ""
+	} else {
+		dbtestpasswd = "my-secret-pw"
+	}
+
 	// DB and Table
-	dbmap, _ := mockInitMySQL("") //DBが存在していないので、この時点ではDB名は指定しない
+	dbmap, _ := mockInitMySQL(dbtestpasswd, "") //DBが存在していないので、この時点ではDB名は指定しない
 	createDBandTable(dbmap)
 
 	// Rows
-	dbmap, _ = mockInitMySQL("qicoo") //DB作成後はDB名を指定し直す必要がある
+	dbmap, _ = mockInitMySQL(dbtestpasswd, "qicoo") //DB作成後はDB名を指定し直す必要がある
 	generateMysqlTestdata(dbmap, getMockQuestion())
 
 	return m.Run()
@@ -91,10 +98,10 @@ func (rm *mockRedisManager) GetRedisConnection() (conn redis.Conn) {
 }
 
 // mockInitMySQL Mock用DBの初期設定(DockerContainer)
-func mockInitMySQL(dbnameS string) (dbmap *gorp.DbMap, err error) {
+func mockInitMySQL(dbtestpasswd string, dbnameS string) (dbmap *gorp.DbMap, err error) {
 	dbms := "mysql"
 	user := "root"
-	password := "my-secret-pw"
+	password := dbtestpasswd
 	protocol := "tcp(127.0.0.1)"
 	dbname := dbnameS
 	option := "?parseTime=true"
@@ -119,7 +126,14 @@ type mockMySQLManager struct {
 
 // GetMySQLdbmap DBのdbmapを取得
 func (mm *mockMySQLManager) GetMySQLdbmap() *gorp.DbMap {
-	dbmap, err := mockInitMySQL("qicoo")
+	var dbtestpasswd string
+	if isTravisEnv() {
+		dbtestpasswd = ""
+	} else {
+		dbtestpasswd = "my-secret-pw"
+	}
+
+	dbmap, err := mockInitMySQL(dbtestpasswd, "qicoo")
 
 	if err != nil {
 		logrus.Error(err)
