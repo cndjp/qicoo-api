@@ -37,10 +37,6 @@ create-dotenv:
 test-main:
 	go test -v ./src/qicoo-api_test.go
 
-.PHONY: test-mysqlib
-test-mysqlib:
-	go test -v ./src/mysqlib/mysqlib_test.go ./src/mysqlib/mysqlib.go
-
 .PHONY: test-question-list
 test-question-list:
 	@if test "$(TRAVIS)" = "true" ;\
@@ -99,7 +95,7 @@ test-question-delete:
 
 
 .PHONY: test
-test: clean-test test-mysqlib test-question-list test-question-create test-main
+test: clean-test test-question-list test-question-create test-main
 
 .PHONY: install
 install:
