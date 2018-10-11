@@ -5,7 +5,7 @@ package handler_test
 import (
 	"database/sql"
 	"fmt"
-	"log"
+	_ "log"
 	"os"
 	"testing"
 	"time"
@@ -16,9 +16,6 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
 )
-
-//var travisTestRedisConn redis.Conn
-//var internalTestRedisConn *redigomock.Conn
 
 var mockRedisPool *redis.Pool
 
@@ -64,27 +61,17 @@ func TestMain(m *testing.M) {
 }
 
 func runTests(m *testing.M) int {
-	if isTravisEnv() {
-		_, err := redis.Dial("tcp", "localhost:6379")
-		if err != nil {
-			log.Fatal(err)
-		}
+	/* Redisの接続情報設定 */
+	mockRedisPool = mockNewRedisPool()
 
-		// TODO 検討
-		//travisTestRedisConn = conn
-	} else {
-		/* Redisの接続情報設定 */
-		mockRedisPool = mockNewRedisPool()
+	/* MySQLのテストデータ格納 */
+	// DB and Table
+	dbmap, _ := mockInitMySQL("") //DBが存在していないので、この時点ではDB名は指定しない
+	createDBandTable(dbmap)
 
-		/* MySQLのテストデータ格納 */
-		// DB and Table
-		dbmap, _ := mockInitMySQL("") //DBが存在していないので、この時点ではDB名は指定しない
-		createDBandTable(dbmap)
-
-		// Rows
-		dbmap, _ = mockInitMySQL("qicoo") //DB作成後はDB名を指定し直す必要がある
-		generateMysqlTestdata(dbmap, mockQuestion)
-	}
+	// Rows
+	dbmap, _ = mockInitMySQL("qicoo") //DB作成後はDB名を指定し直す必要がある
+	generateMysqlTestdata(dbmap, mockQuestion)
 
 	return m.Run()
 }
@@ -94,19 +81,6 @@ func flushallRedis(conn redis.Conn) {
 		fmt.Println(err)
 	}
 }
-
-//func newMockPool() *handler.RedisClient {
-//	m := new(handler.RedisClient)
-//	if isTravisEnv() {
-//		m.RedisConn = travisTestRedisConn
-//	} else {
-//		m.RedisConn = internalTestRedisConn
-//	}
-//
-//	m.Vars = mockMuxVars
-//
-//	return m
-//}
 
 // mockNewRedisPool Mock用のRedisPoolを生成
 func mockNewRedisPool() *redis.Pool {

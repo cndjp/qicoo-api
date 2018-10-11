@@ -115,3 +115,24 @@ func (mm *MySQLManager) GetMySQLdbmap() *gorp.DbMap {
 	dbmap.AddTableWithName(Question{}, "questions")
 	return dbmap
 }
+
+// TimeNowRoundDown 時刻を取得する。小数点以下は切り捨てる
+// RedisとMyySQLでの時刻扱いに微妙に仕様の差異があるための対応
+// Time.Now()で生成した時刻をMySQLに挿入すると、四捨五入される
+// MySQLに挿入する前に時刻を確定したいため、この関数で生成する時刻を使用する
+func TimeNowRoundDown() time.Time {
+	format := "2006-01-02 15:04:05"
+
+	var now time.Time
+	now = time.Now()
+
+	// 小数点以下を切り捨てて文字列を生成
+	var nowRoundString string
+	nowRoundString = now.Format(format)
+
+	// tine.Timeを生成
+	loc, _ := time.LoadLocation("Asia/Tokyo")
+	nowRound, _ := time.ParseInLocation(format, nowRoundString, loc)
+
+	return nowRound
+}
