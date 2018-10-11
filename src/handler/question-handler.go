@@ -89,14 +89,14 @@ func GetRedisKeys(eventID string) RedisKeys {
 }
 
 // redisHasKey
-func redisHasKey(conn redis.Conn, key string) (hasKey bool) {
+func redisHasKey(conn redis.Conn, key string) (hasKey bool, err error) {
 	ok, err := redis.Bool(conn.Do("EXISTS", key))
 	if err != nil {
 		logrus.Error(err)
-		return false
+		return false, err
 	}
 
-	return ok
+	return ok, nil
 }
 
 //MySQLManager MySQLDbmapInterfaceの実装
@@ -131,8 +131,15 @@ func TimeNowRoundDown() time.Time {
 	nowRoundString = now.Format(format)
 
 	// tine.Timeを生成
-	loc, _ := time.LoadLocation("Asia/Tokyo")
-	nowRound, _ := time.ParseInLocation(format, nowRoundString, loc)
+	loc, err := time.LoadLocation("Asia/Tokyo")
+	if err != nil {
+		logrus.Error(err)
+	}
+
+	nowRound, err := time.ParseInLocation(format, nowRoundString, loc)
+	if err != nil {
+		logrus.Error(err)
+	}
 
 	return nowRound
 }

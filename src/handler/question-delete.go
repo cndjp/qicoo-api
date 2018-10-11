@@ -36,6 +36,8 @@ func QuestionDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		logrus.Error(err)
 		return
 	}
+
+	// TODO response実装
 }
 
 // QuestionDeleteFunc テストコードでテストしやすいように定義
@@ -60,7 +62,11 @@ func QuestionDeleteFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v
 	}
 
 	// RedisからQurstionを削除
-	QuestionDeleteRedis(rci, dmi, v, *q)
+	err = QuestionDeleteRedis(rci, dmi, v, *q)
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
 
 	trans.Commit()
 	return nil
@@ -92,11 +98,21 @@ func QuestionDeleteRedis(rci RedisConnectionInterface, dmi MySQLDbmapInterface, 
 
 	// 多分並列処理できるやつ
 	/* Redisにデータが存在するか確認する。 */
-	yes := checkRedisKey(redisConn, rks)
+	yes, err := checkRedisKey(redisConn, rks)
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
+
 	if !yes {
 		dbmap := dmi.GetMySQLdbmap()
 		defer dbmap.Db.Close()
-		syncQuestion(redisConn, dbmap, v.EventID, rks)
+		_, err := syncQuestion(redisConn, dbmap, v.EventID, rks)
+		// 同期にエラー
+		if err != nil {
+			logrus.Error(err)
+			return err
+		}
 	}
 
 	//HashMap

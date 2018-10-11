@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	_ "time"
 
 	"github.com/go-gorp/gorp"
 	"github.com/gomodule/redigo/redis"
@@ -21,7 +20,13 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	// DBとRedisに書き込むためのstiruct Object を生成。POST REQUEST のBodyから値を取得
 	var question Question
 	decoder := json.NewDecoder(r.Body)
-	decoder.Decode(&question)
+
+	var err error
+	err = decoder.Decode(&question)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
 
 	// POST REQUEST の BODY に含まれていない値の設定
 	question.ID = uuid.New().String()
@@ -45,7 +50,7 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	var dmi MySQLDbmapInterface
 	dmi = new(MySQLManager)
 
-	err := QuestionCreateFunc(rci, dmi, v, question)
+	err = QuestionCreateFunc(rci, dmi, v, question)
 	if err != nil {
 		logrus.Error(err)
 		return
@@ -62,7 +67,11 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	// 整形用のバッファを作成し、整形を実行
 	out := new(bytes.Buffer)
 	// プリフィックスなし、スペース2つでインデント
-	json.Indent(out, jsonBytes, "", "  ")
+	err = json.Indent(out, jsonBytes, "", "  ")
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
 
 	w.Write([]byte(out.String()))
 }
@@ -94,7 +103,13 @@ func QuestionCreateFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v
 		return err
 	}
 
-	trans.Commit()
+	err = trans.Commit()
+	if err != nil {
+		logrus.Error(err)
+		trans.Rollback()
+		return err
+	}
+
 	return nil
 }
 
@@ -121,11 +136,21 @@ func SetQuestion(redisConn redis.Conn, dmi MySQLDbmapInterface, v QuestionCreate
 
 	// 多分並列処理できるやつ
 	/* Redisにデータが存在するか確認する。 */
-	yes := checkRedisKey(redisConn, rks)
+	yes, err := checkRedisKey(redisConn, rks)
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
+
 	if !yes {
 		dbmap := dmi.GetMySQLdbmap()
 		defer dbmap.Db.Close()
-		syncQuestion(redisConn, dbmap, v.EventID, rks)
+		_, err := syncQuestion(redisConn, dbmap, v.EventID, rks)
+		// 同期にエラー
+		if err != nil {
+			logrus.Error(err)
+			return err
+		}
 	}
 
 	//HashMap SerializedされたJSONデータを格納

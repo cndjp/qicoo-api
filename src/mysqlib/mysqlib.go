@@ -30,11 +30,3 @@ func InitMySQL() (dbmap *gorp.DbMap, err error) {
 
 	return dbmap, nil
 }
-
-// SetConnectValue mysqlibパッケージのグローバル変数に定義。テストコードのために使用する
-//func SetConnectValue(userS, passwordS, protocolS, dbnameS string) {
-//	user = userS
-//	password = passwordS
-//	protocol = protocolS
-//	dbname = dbnameS
-//}

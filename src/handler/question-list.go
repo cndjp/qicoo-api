@@ -43,7 +43,11 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 
 	// QuestionListを取得
 	var questionList QuestionList
-	questionList = QuestionListFunc(rci, dmi, v)
+	questionList, err = QuestionListFunc(rci, dmi, v)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
 
 	/* JSONの整形 */
 	// QuestionのStructをjsonとして変換
@@ -56,14 +60,18 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 	// 整形用のバッファを作成し、整形を実行
 	out := new(bytes.Buffer)
 	// プリフィックスなし、スペース2つでインデント
-	json.Indent(out, jsonBytes, "", "  ")
+	err = json.Indent(out, jsonBytes, "", "  ")
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
 
 	w.Write([]byte(out.String()))
 
 }
 
 // QuestionListFunc テストコードでテストしやすいように定義
-func QuestionListFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v QuestionListMuxVars) (questionList QuestionList) {
+func QuestionListFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v QuestionListMuxVars) (questionList QuestionList, err error) {
 	// RedisのConnection生成
 	redisConn := rci.GetRedisConnection()
 	defer redisConn.Close()
@@ -74,14 +82,49 @@ func QuestionListFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v Q
 
 	// 多分並列処理できるやつ
 	/* Redisにデータが存在するか確認する。 */
-	yes := checkRedisKey(redisConn, rks)
+	yes, err := checkRedisKey(redisConn, rks)
+	if err != nil {
+		logrus.Error(err)
+		return getZeroQuestionList(), err
+	}
+
 	if !yes {
 		dbmap := dmi.GetMySQLdbmap()
 		defer dbmap.Db.Close()
-		syncQuestion(redisConn, dbmap, v.EventID, rks)
+		sc, err := syncQuestion(redisConn, dbmap, v.EventID, rks)
+
+		// 同期にエラー
+		if err != nil {
+			logrus.Error(err)
+			return getZeroQuestionList(), err
+		}
+
+		// 同期したデータが0の場合(Questionデータが0の場合)
+		if sc == 0 {
+			return getZeroQuestionList(), nil
+		}
 	}
 
-	questionList = GetQuestionList(redisConn, v, rks)
+	questionList, err = GetQuestionList(redisConn, v, rks)
+	if err != nil {
+		logrus.Error(err)
+		return questionList, err
+	}
+
+	return questionList, nil
+}
+
+// getZeroQuestionList Questionが0件の時のデータを取得
+func getZeroQuestionList() QuestionList {
+	var questionList QuestionList
+	var questions []Question
+
+	questionList = QuestionList{
+		Data:   questions,
+		Object: "list",
+		Type:   "question",
+	}
+
 	return questionList
 }
 
@@ -108,13 +151,13 @@ func selectRedisSortedKey(sort string, rks RedisKeys) (sortedkey string) {
 }
 
 // GetQuestionList RedisとDBからデータを取得する
-func GetQuestionList(conn redis.Conn, v QuestionListMuxVars, rks RedisKeys) (questionList QuestionList) {
+func GetQuestionList(conn redis.Conn, v QuestionListMuxVars, rks RedisKeys) (questionList QuestionList, err error) {
 	// API実行時に指定されたSortをRedisで実行
 	uuidSlice, err := redis.Strings(conn.Do(selectRedisCommand(v.Order), selectRedisSortedKey(v.Sort, rks), v.Start-1, v.End-1))
 	println("GetQuestionList:", selectRedisCommand(v.Order), selectRedisSortedKey(v.Sort, rks), v.Start-1, v.End-1)
 	if err != nil {
 		logrus.Error(err)
-		return
+		return getZeroQuestionList(), err
 	}
 
 	// RedisのDo関数は、Interface型のSliceしか受け付けないため、makeで生成 (String型のSliceはコンパイルエラー)
@@ -128,13 +171,18 @@ func GetQuestionList(conn redis.Conn, v QuestionListMuxVars, rks RedisKeys) (que
 	bytesSlice, err := redis.ByteSlices(conn.Do("HMGET", list...))
 	if err != nil {
 		logrus.Error(err)
-		return
+		return getZeroQuestionList(), err
 	}
 
 	var questions []Question
 	for _, bytes := range bytesSlice {
 		q := new(Question)
-		json.Unmarshal(bytes, q)
+		err = json.Unmarshal(bytes, q)
+		if err != nil {
+			logrus.Error(err)
+			return getZeroQuestionList(), err
+		}
+
 		questions = append(questions, *q)
 	}
 
@@ -142,6 +190,7 @@ func GetQuestionList(conn redis.Conn, v QuestionListMuxVars, rks RedisKeys) (que
 	locationTokyo, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
 		logrus.Fatal(err)
+		return getZeroQuestionList(), err
 	}
 
 	for i := range questions {
@@ -155,5 +204,5 @@ func GetQuestionList(conn redis.Conn, v QuestionListMuxVars, rks RedisKeys) (que
 		Type:   "question",
 	}
 
-	return questionList
+	return questionList, nil
 }
