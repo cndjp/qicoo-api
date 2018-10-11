@@ -21,24 +21,12 @@ var mockRedisPool *redis.Pool
 
 const testEventID = "testEventID"
 
-var mockQuestion = handler.Question{
-	ID:        "00000000-0000-0000-0000-000000000000",
-	Object:    "question",
-	Username:  "anonymous",
-	EventID:   testEventID,
-	ProgramID: "1",
-	Comment:   "I am mock",
-	CreatedAt: time.Now(),
-	UpdatedAt: time.Now(),
-	Like:      100000,
-}
-
 var mockQLMuxVars = handler.QuestionListMuxVars{
 	EventID: testEventID,
 	Start:   1,
 	End:     100,
 	Sort:    "created_at",
-	Order:   "asc",
+	Order:   "desc",
 }
 
 var mockQCMuxVars = handler.QuestionCreateMuxVars{
@@ -71,7 +59,7 @@ func runTests(m *testing.M) int {
 
 	// Rows
 	dbmap, _ = mockInitMySQL("qicoo") //DB作成後はDB名を指定し直す必要がある
-	generateMysqlTestdata(dbmap, mockQuestion)
+	generateMysqlTestdata(dbmap, getMockQuestion())
 
 	return m.Run()
 }
@@ -170,4 +158,23 @@ func generateMysqlTestdata(dbmap *gorp.DbMap, question handler.Question) {
 	if err != nil {
 		logrus.Error(err)
 	}
+}
+
+// getMockQuestion
+func getMockQuestion() handler.Question {
+	var loc, _ = time.LoadLocation("Asia/Tokyo")
+	mocktime, _ := time.ParseInLocation("2006-01-02 15:04:05", "2018-10-01 12:12:12", loc)
+
+	var mq handler.Question
+	mq.ID = "00000000-0000-0000-0000-000000000000"
+	mq.Object = "question"
+	mq.Username = "anonymous"
+	mq.EventID = testEventID
+	mq.ProgramID = "1" // 未実装のため1固定で生成
+	mq.Comment = "I am Mock"
+	mq.Like = 0
+	mq.UpdatedAt = mocktime
+	mq.CreatedAt = mocktime
+
+	return mq
 }
