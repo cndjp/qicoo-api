@@ -1,16 +1,11 @@
 package handler_test
 
 import (
-	_ "encoding/json"
-	_ "log"
-	_ "os"
 	"reflect"
 	"testing"
-	_ "time"
 
 	"github.com/cndjp/qicoo-api/src/handler"
-	_ "github.com/gomodule/redigo/redis"
-	_ "github.com/rafaeljusto/redigomock"
+	"github.com/sirupsen/logrus"
 )
 
 func judgeDeleteQuestionList(ql handler.QuestionList, t *testing.T) {
@@ -49,7 +44,12 @@ func TestDeleteQuestion(t *testing.T) {
 
 	// QuestionListを取得し、testQuestionが削除されているか確認
 	var questionList handler.QuestionList
-	questionList = handler.QuestionListFunc(rci, dmi, mockQLMuxVars)
+	questionList, err := handler.QuestionListFunc(rci, dmi, mockQLMuxVars)
+
+	if err != nil {
+		logrus.Error(err)
+		t.Errorf("error :%v", err)
+	}
 
 	judgeDeleteQuestionList(questionList, t)
 }

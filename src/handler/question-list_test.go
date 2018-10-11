@@ -1,11 +1,11 @@
 package handler_test
 
 import (
-	_ "encoding/json"
 	"reflect"
 	"testing"
 
 	"github.com/cndjp/qicoo-api/src/handler"
+	"github.com/sirupsen/logrus"
 )
 
 func judgeGetQuestionList(ql handler.QuestionList, t *testing.T) {
@@ -26,7 +26,12 @@ func TestGetQuestionList(t *testing.T) {
 	dmi = new(mockMySQLManager)
 
 	var questionList handler.QuestionList
-	questionList = handler.QuestionListFunc(rci, dmi, mockQLMuxVars)
+	questionList, err := handler.QuestionListFunc(rci, dmi, mockQLMuxVars)
+
+	if err != nil {
+		logrus.Error(err)
+		t.Errorf("error :%v", err)
+	}
 
 	judgeGetQuestionList(questionList, t)
 }
