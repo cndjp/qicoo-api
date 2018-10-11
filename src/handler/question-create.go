@@ -42,11 +42,10 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 		"username: " + question.Username + "\n" +
 		"Like: " + strconv.Itoa(question.Like) + "\n"))
 
-	var m *gorp.DbMap
-	m = InitMySQLQuestion()
-	defer m.Db.Close()
+	var dmi MySQLDbmapInterface
+	dmi = new(MySQLManager)
 
-	CreateQuestionDB(m, question)
+	CreateQuestionDB(dmi, question)
 
 	var rci RedisConnectionInterface
 	rci = new(RedisManager)
@@ -61,12 +60,16 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // CreateQuestionDB DBに質問データの挿入
-func CreateQuestionDB(m *gorp.DbMap, question Question) error {
+func CreateQuestionDB(dmi MySQLDbmapInterface, question Question) error {
+	var dbmap *gorp.DbMap
+	dbmap = dmi.GetMySQLdbmap()
+	defer dbmap.Db.Close()
+
 	// debug SQL Trace
-	m.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
+	dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
 
 	/* データの挿入 */
-	err := m.Insert(&question)
+	err := dbmap.Insert(&question)
 
 	if err != nil {
 		logrus.Error(err)

@@ -3,6 +3,7 @@
 package handler_test
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
@@ -10,20 +11,21 @@ import (
 	"time"
 
 	"github.com/cndjp/qicoo-api/src/handler"
-	"github.com/cndjp/qicoo-api/src/mysqlib"
-	"github.com/cndjp/qicoo-api/src/pool"
+	_ "github.com/cndjp/qicoo-api/src/mysqlib"
 	"github.com/go-gorp/gorp"
 	"github.com/gomodule/redigo/redis"
-	"github.com/rafaeljusto/redigomock"
+	"github.com/sirupsen/logrus"
 )
 
-var travisTestRedisConn redis.Conn
-var internalTestRedisConn *redigomock.Conn
+//var travisTestRedisConn redis.Conn
+//var internalTestRedisConn *redigomock.Conn
+
+var mockRedisPool *redis.Pool
 
 const testEventID = "testEventID"
 
 var mockQuestion = handler.Question{
-	ID:        "1",
+	ID:        "00000000-0000-0000-0000-000000000000",
 	Object:    "question",
 	Username:  "anonymous",
 	EventID:   testEventID,
@@ -34,12 +36,20 @@ var mockQuestion = handler.Question{
 	Like:      100000,
 }
 
-var mockMuxVars = handler.MuxVars{
+var mockQLMuxVars = handler.QuestionListMuxVars{
 	EventID: testEventID,
 	Start:   1,
 	End:     100,
 	Sort:    "created_at",
 	Order:   "asc",
+}
+
+var mockQCMuxVars = handler.QuestionCreateMuxVars{
+	EventID: testEventID,
+}
+
+var mockQDMuxVars = handler.QuestionDeleteMuxVars{
+	EventID: testEventID,
 }
 
 func isTravisEnv() bool {
@@ -55,25 +65,24 @@ func TestMain(m *testing.M) {
 
 func runTests(m *testing.M) int {
 	if isTravisEnv() {
-		conn, err := redis.Dial("tcp", "localhost:6379")
+		_, err := redis.Dial("tcp", "localhost:6379")
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		travisTestRedisConn = conn
+		// TODO 検討
+		//travisTestRedisConn = conn
 	} else {
 		/* Redisの接続情報設定 */
-		setLocalRedisPool(newLocalRedisPool())
+		mockRedisPool = mockNewRedisPool()
 
 		/* MySQLのテストデータ格納 */
 		// DB and Table
-		mysqlib.SetConnectValue("root", "my-secret-pw", "tcp(127.0.0.1)", "") //DBが存在していないので、この時点ではDB名は指定しない
-		dbmap := handler.InitMySQLQuestion()
+		dbmap, _ := mockInitMySQL("") //DBが存在していないので、この時点ではDB名は指定しない
 		createDBandTable(dbmap)
 
 		// Rows
-		mysqlib.SetConnectValue("root", "my-secret-pw", "tcp(127.0.0.1)", "qicoo") //DB作成後はDB名を指定し直す必要がある
-		dbmap = handler.InitMySQLQuestion()
+		dbmap, _ = mockInitMySQL("qicoo") //DB作成後はDB名を指定し直す必要がある
 		generateMysqlTestdata(dbmap, mockQuestion)
 	}
 
@@ -86,27 +95,77 @@ func flushallRedis(conn redis.Conn) {
 	}
 }
 
-func newMockPool() *handler.RedisClient {
-	m := new(handler.RedisClient)
-	if isTravisEnv() {
-		m.RedisConn = travisTestRedisConn
-	} else {
-		m.RedisConn = internalTestRedisConn
+//func newMockPool() *handler.RedisClient {
+//	m := new(handler.RedisClient)
+//	if isTravisEnv() {
+//		m.RedisConn = travisTestRedisConn
+//	} else {
+//		m.RedisConn = internalTestRedisConn
+//	}
+//
+//	m.Vars = mockMuxVars
+//
+//	return m
+//}
+
+// mockNewRedisPool Mock用のRedisPoolを生成
+func mockNewRedisPool() *redis.Pool {
+	// idle connection limit:3    active connection limit:1000
+	return &redis.Pool{
+		MaxIdle:     3,
+		MaxActive:   1000,
+		IdleTimeout: 240 * time.Second,
+		Dial:        func() (redis.Conn, error) { return redis.Dial("tcp", "127.0.0.1:6379") },
+	}
+}
+
+// mockRedisManager RedisConnectionInterfaceの実装
+type mockRedisManager struct {
+}
+
+// GetRedisConnection RedisConnectionの取得
+func (rm *mockRedisManager) GetRedisConnection() (conn redis.Conn) {
+	return mockRedisPool.Get()
+}
+
+// mockInitMySQL Mock用DBの初期設定(DockerContainer)
+func mockInitMySQL(dbnameS string) (dbmap *gorp.DbMap, err error) {
+	dbms := "mysql"
+	user := "root"
+	password := "my-secret-pw"
+	protocol := "tcp(127.0.0.1)"
+	dbname := dbnameS
+	option := "?parseTime=true"
+
+	connect := user + ":" + password + "@" + protocol + "/" + dbname + option
+	db, err := sql.Open(dbms, connect)
+
+	if err != nil {
+		logrus.Error(err)
+		return nil, err
 	}
 
-	m.Vars = mockMuxVars
+	dbmap = &gorp.DbMap{Db: db, Dialect: gorp.MySQLDialect{}}
+	dbmap.AddTableWithName(handler.Question{}, "questions")
 
-	return m
+	return dbmap, nil
 }
 
-// newLocalRedisPool LocalのRedisで使用するRedisPoolを生成
-func newLocalRedisPool() *redis.Pool {
-	return pool.NewRedisPool("127.0.0.1:6379")
+//MySQLManager MySQLDbmapInterfaceの実装
+type mockMySQLManager struct {
 }
 
-// handlerのRedisPoolにLocal用のRedisPoolを設定する
-func setLocalRedisPool(redisPool *redis.Pool) {
-	pool.RedisPool = redisPool
+// GetMySQLdbmap DBのdbmapを取得
+func (mm *mockMySQLManager) GetMySQLdbmap() *gorp.DbMap {
+	dbmap, err := mockInitMySQL("qicoo")
+
+	if err != nil {
+		logrus.Error(err)
+		return nil
+	}
+
+	dbmap.AddTableWithName(handler.Question{}, "questions")
+	return dbmap
 }
 
 // createDBandTable MySQLにDatabaseとTableを作成
@@ -132,5 +191,9 @@ func createDBandTable(dbmap *gorp.DbMap) {
 // generateMysqlTestdata MySQLのテストデータを生成して格納
 func generateMysqlTestdata(dbmap *gorp.DbMap, question handler.Question) {
 	/* データの挿入 */
-	dbmap.Insert(&question)
+	err := dbmap.Insert(&question)
+
+	if err != nil {
+		logrus.Error(err)
+	}
 }

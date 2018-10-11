@@ -66,7 +66,7 @@ type RedisConnectionInterface interface {
 
 // MySQLDbmapInterface MySQLのDBmapを扱うInterface
 type MySQLDbmapInterface interface {
-	GetMySQLConnection() *gorp.DbMap
+	GetMySQLdbmap() *gorp.DbMap
 }
 
 // RedisManager  RedisConnectionInterfaceの実装
@@ -74,37 +74,9 @@ type RedisManager struct {
 }
 
 // GetRedisConnection RedisConnectionの取得
-func (rc *RedisManager) GetRedisConnection() (conn redis.Conn) {
+func (rm *RedisManager) GetRedisConnection() (conn redis.Conn) {
 	return pool.RedisPool.Get()
 }
-
-/* 一時コメントアウト */
-// RedisClient interfaceを実装するstruct
-//type RedisClient struct {
-//	Vars             MuxVars
-//	RedisConn        redis.Conn
-//	QuestionsKey     string
-//	LikeSortedKey    string
-//	CreatedSortedKey string
-//}
-
-// GetInterfaceRedisConnection RedisClientからConnectionを取得
-//func GetInterfaceRedisConnection(rci RedisClientInterface) (conn redis.Conn) {
-//	return rci.GetRedisConnection()
-//}
-
-// GetRedisConnection RedisのPoolから、Connectionを取得
-//func (rc *RedisClient) GetRedisConnection() (conn redis.Conn) {
-//	return pool.RedisPool.Get()
-//}
-
-//func (rc *RedisClient) getQuestionsKey() {
-//	rc.QuestionsKey = "questions_" + rc.Vars.EventID
-//	rc.LikeSortedKey = rc.QuestionsKey + "_like"
-//	rc.CreatedSortedKey = rc.QuestionsKey + "_created"
-//
-//	return
-//}
 
 // GetRedisKeys Redisで使用するkeyを取得
 func GetRedisKeys(eventID string) RedisKeys {
@@ -127,8 +99,12 @@ func redisHasKey(conn redis.Conn, key string) (hasKey bool) {
 	return ok
 }
 
-// InitMySQLQuestion DBのdbmapを取得
-func InitMySQLQuestion() *gorp.DbMap {
+//MySQLManager MySQLDbmapInterfaceの実装
+type MySQLManager struct {
+}
+
+// GetMySQLdbmap DBのdbmapを取得
+func (mm *MySQLManager) GetMySQLdbmap() *gorp.DbMap {
 	dbmap, err := mysqlib.InitMySQL()
 
 	if err != nil {

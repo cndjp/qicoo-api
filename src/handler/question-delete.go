@@ -22,13 +22,11 @@ func QuestionDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	q.ID = vars["question_id"]
 	q.EventID = vars["event_id"]
 
-	/* DB connection 取得 */
-	var m *gorp.DbMap
-	m = InitMySQLQuestion()
-	defer m.Db.Close()
+	var dmi MySQLDbmapInterface
+	dmi = new(MySQLManager)
 
 	// DBからQuestionを削除
-	err := QuestionDeleteDB(m, q)
+	err := QuestionDeleteDB(dmi, q)
 	if err != nil {
 		logrus.Error(err)
 		return
@@ -46,12 +44,16 @@ func QuestionDeleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // QuestionDeleteDB DBからQuestionを削除する
-func QuestionDeleteDB(m *gorp.DbMap, q *Question) error {
+func QuestionDeleteDB(dmi MySQLDbmapInterface, q *Question) error {
+	var dbmap *gorp.DbMap
+	dbmap = dmi.GetMySQLdbmap()
+	defer dbmap.Db.Close()
+
 	// Tracelogの設定
-	m.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
+	dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
 
 	// delete実行
-	_, err := m.Delete(q)
+	_, err := dbmap.Delete(q)
 	if err != nil {
 		logrus.Error(err)
 		return err

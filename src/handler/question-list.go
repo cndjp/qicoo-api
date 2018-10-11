@@ -38,9 +38,12 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 	var rci RedisConnectionInterface
 	rci = new(RedisManager)
 
+	var dmi MySQLDbmapInterface
+	dmi = new(MySQLManager)
+
 	// QuestionListを取得
 	var questionList QuestionList
-	questionList = QuestionListFunc(rci, v)
+	questionList = QuestionListFunc(rci, dmi, v)
 
 	/* JSONの整形 */
 	// QuestionのStructをjsonとして変換
@@ -60,7 +63,7 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // QuestionListFunc テストコードでテストしやすいように定義
-func QuestionListFunc(rci RedisConnectionInterface, v QuestionListMuxVars) (questionList QuestionList) {
+func QuestionListFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v QuestionListMuxVars) (questionList QuestionList) {
 	// RedisのConnection生成
 	redisConn := rci.GetRedisConnection()
 	defer redisConn.Close()
@@ -73,7 +76,8 @@ func QuestionListFunc(rci RedisConnectionInterface, v QuestionListMuxVars) (ques
 	/* Redisにデータが存在するか確認する。 */
 	yes := checkRedisKey(redisConn, rks)
 	if !yes {
-		dbmap := InitMySQLQuestion()
+		dbmap := dmi.GetMySQLdbmap()
+		defer dbmap.Db.Close()
 		syncQuestion(redisConn, dbmap, v.EventID, rks)
 	}
 

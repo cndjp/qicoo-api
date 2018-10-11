@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"time"
 
-	_ "github.com/cndjp/qicoo-api/src/mysqlib"
 	"github.com/go-gorp/gorp"
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
@@ -14,7 +13,6 @@ import (
 func checkRedisKey(conn redis.Conn, rks RedisKeys) bool {
 	// 3種類のKeyが存在しない場合はデータが何かしら不足しているため、データの同期を行う
 	if !redisHasKey(conn, rks.QuestionKey) || !redisHasKey(conn, rks.LikeSortedKey) || !redisHasKey(conn, rks.CreatedSortedKey) {
-		//rc.syncQuestion(rc.Vars.EventID)
 		return false
 	}
 
