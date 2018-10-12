@@ -1,70 +1,115 @@
 package handler
 
 import (
+	"bytes"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 
-	"github.com/cndjp/qicoo-api/src/mysqlib"
 	"github.com/go-gorp/gorp"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
+
+// QuestionDeleteResponse Questionを削除成功した時にResponseするためのstruct
+type QuestionDeleteResponse struct {
+	QuesitonID string `json:"id"`
+	Type       string `json:"object"`
+	Deleted    bool   `json:"deleted"`
+}
 
 // QuestionDeleteHandler Questionの削除用 関数
 func QuestionDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	// URLに含まれているパラメータを取得
 	vars := mux.Vars(r)
 
-	// 削除用のQuestion strictを生成 (GORPで使用するため)
+	// 削除用のQuestionを生成 (GORPで使用するため)
 	var q *Question
 	q = new(Question)
 	q.ID = vars["question_id"]
 	q.EventID = vars["event_id"]
 
-	/* DB connection 取得 */
-	var m *gorp.DbMap
-	db, err := mysqlib.InitMySQL()
+	v := QuestionDeleteMuxVars{
+		EventID: vars["event_id"],
+	}
+
+	var dmi MySQLDbmapInterface
+	dmi = new(MySQLManager)
+
+	var rci RedisConnectionInterface
+	rci = new(RedisManager)
+
+	err := QuestionDeleteFunc(rci, dmi, v, q)
 	if err != nil {
 		logrus.Error(err)
 		return
 	}
 
-	m = mysqlib.MappingDBandTable(db)
-	m.AddTableWithName(Question{}, "questions")
-	defer m.Db.Close()
+	var res QuestionDeleteResponse
+	res.QuesitonID = q.ID
+	res.Type = "question"
+	res.Deleted = true
 
+	/* Response JSONの整形 */
+	// QuestionのStructをjsonとして変換
+	jsonBytes, err := json.Marshal(res)
 	if err != nil {
 		logrus.Error(err)
 		return
+	}
+
+	// 整形用のバッファを作成し、整形を実行
+	out := new(bytes.Buffer)
+	// プリフィックスなし、スペース2つでインデント
+	err = json.Indent(out, jsonBytes, "", "  ")
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	w.Write([]byte(out.String()))
+}
+
+// QuestionDeleteFunc テストコードでテストしやすいように定義
+func QuestionDeleteFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v QuestionDeleteMuxVars, q *Question) error {
+	var dbmap *gorp.DbMap
+	dbmap = dmi.GetMySQLdbmap()
+	defer dbmap.Db.Close()
+
+	// gorpのトランザクション処理。DBとRedisの両方とも削除が出来た場合に、commitする
+	trans, err := dbmap.Begin()
+	if err != nil {
+		logrus.Error(err)
+		return err
 	}
 
 	// DBからQuestionを削除
-	err = QuestionDeleteDB(m, q)
+	err = QuestionDeleteDB(dbmap, q)
 	if err != nil {
 		logrus.Error(err)
-		return
+		trans.Rollback()
+		return err
 	}
 
 	// RedisからQurstionを削除
-	// RedisClientの初期化初期設定
-	rc := new(RedisClient)
-	v := new(MuxVars)
-	v.EventID = vars["event_id"]
-	rc.Vars = *v
+	err = QuestionDeleteRedis(rci, dmi, v, *q)
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
 
-	// URLに含まれている event_id を取得
-	rc.RedisConn = GetInterfaceRedisConnection(rc)
-	QuestionDeleteRedis(rc, *q)
+	trans.Commit()
+	return nil
 }
 
 // QuestionDeleteDB DBからQuestionを削除する
-func QuestionDeleteDB(m *gorp.DbMap, q *Question) error {
+func QuestionDeleteDB(dbmap *gorp.DbMap, q *Question) error {
 	// Tracelogの設定
-	m.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
+	dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
 
 	// delete実行
-	_, err := m.Delete(q)
+	_, err := dbmap.Delete(q)
 	if err != nil {
 		logrus.Error(err)
 		return err
@@ -73,41 +118,51 @@ func QuestionDeleteDB(m *gorp.DbMap, q *Question) error {
 	return nil
 }
 
-// QuestionDeleteRedis RedisからQuestionを削除する
-func QuestionDeleteRedis(rc *RedisClient, question Question) error {
-	err := rc.DeleteQuestion(question)
+// QuestionDeleteRedis RedisからQuestionを削除するメソッド
+func QuestionDeleteRedis(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v QuestionDeleteMuxVars, question Question) error {
+	// RedisのConnection生成
+	redisConn := rci.GetRedisConnection()
+	defer redisConn.Close()
 
-	if err != nil {
-		logrus.Error(err)
-		return err
-	}
-
-	return nil
-}
-
-// DeleteQuestion RedisからQuestionを削除するメソッド
-func (rc *RedisClient) DeleteQuestion(question Question) error {
 	// RedisClient にKeyを生成
-	rc.getQuestionsKey()
-	rc.checkRedisKey()
+	rks := GetRedisKeys(v.EventID)
+
+	// 多分並列処理できるやつ
+	/* Redisにデータが存在するか確認する。 */
+	yes, err := checkRedisKey(redisConn, rks)
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
+
+	if !yes {
+		dbmap := dmi.GetMySQLdbmap()
+		defer dbmap.Db.Close()
+		_, err := syncQuestion(redisConn, dbmap, v.EventID, rks)
+		// 同期にエラー
+		if err != nil {
+			logrus.Error(err)
+			return err
+		}
+	}
 
 	//HashMap
-	println("DeleteQuestion:", "HDEL", rc.QuestionsKey, question.ID)
-	if _, err := rc.RedisConn.Do("HDEL", rc.QuestionsKey, question.ID); err != nil {
+	println("DeleteQuestion:", "HDEL", rks.QuestionKey, question.ID)
+	if _, err := redisConn.Do("HDEL", rks.QuestionKey, question.ID); err != nil {
 		logrus.Error(err)
 		return err
 	}
 
 	//SortedSet Created_at
-	println("DeleteQuestion:", "ZREM", rc.CreatedSortedKey, question.ID)
-	if _, err := rc.RedisConn.Do("ZREM", rc.CreatedSortedKey, question.ID); err != nil {
+	println("DeleteQuestion:", "ZREM", rks.CreatedSortedKey, question.ID)
+	if _, err := redisConn.Do("ZREM", rks.CreatedSortedKey, question.ID); err != nil {
 		logrus.Error(err)
 		return err
 	}
 
 	//SortedSet like
-	println("DeleteQuestion:", "ZREM", rc.LikeSortedKey, question.ID)
-	if _, err := rc.RedisConn.Do("ZREM", rc.LikeSortedKey, question.ID); err != nil {
+	println("DeleteQuestion:", "ZREM", rks.LikeSortedKey, question.ID)
+	if _, err := redisConn.Do("ZREM", rks.LikeSortedKey, question.ID); err != nil {
 		logrus.Error(err)
 		return err
 	}

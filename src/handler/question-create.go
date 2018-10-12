@@ -1,15 +1,14 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"log"
 	"net/http"
 	"os"
-	"strconv"
-	"time"
 
-	"github.com/cndjp/qicoo-api/src/mysqlib"
 	"github.com/go-gorp/gorp"
+	"github.com/gomodule/redigo/redis"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
@@ -21,7 +20,13 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	// DBとRedisに書き込むためのstiruct Object を生成。POST REQUEST のBodyから値を取得
 	var question Question
 	decoder := json.NewDecoder(r.Body)
-	decoder.Decode(&question)
+
+	var err error
+	err = decoder.Decode(&question)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
 
 	// POST REQUEST の BODY に含まれていない値の設定
 	question.ID = uuid.New().String()
@@ -30,56 +35,91 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	question.EventID = mux.Vars(r)["event_id"]
 	question.ProgramID = "1" // 未実装のため1固定で生成
 	question.Like = 0
-	question.UpdatedAt = time.Now()
-	question.CreatedAt = time.Now()
-
-	// debug
-	w.Write([]byte("comment: " + question.Comment + "\n" +
-		"ID: " + question.ID + "\n" +
-		"Object: " + question.Object + "\n" +
-		"eventID: " + question.EventID + "\n" +
-		"programID: " + question.ProgramID + "\n" +
-		"username: " + question.Username + "\n" +
-		"Like: " + strconv.Itoa(question.Like) + "\n"))
-
-	var m *gorp.DbMap
-	db, err := mysqlib.InitMySQL()
-	if err != nil {
-		logrus.Error(err)
-		return
-	}
-
-	m = mysqlib.MappingDBandTable(db)
-	m.AddTableWithName(Question{}, "questions")
-	defer m.Db.Close()
-
-	if err != nil {
-		logrus.Error(err)
-		return
-	}
-
-	CreateQuestionDB(m, question)
-
-	// RedisClientの初期化初期設定
-	rc := new(RedisClient)
+	question.UpdatedAt = TimeNowRoundDown()
+	question.CreatedAt = question.UpdatedAt
 
 	// URLに含まれている event_id を取得
 	vars := mux.Vars(r)
-	v := new(MuxVars)
-	v.EventID = vars["event_id"]
-	rc.Vars = *v
+	v := QuestionCreateMuxVars{
+		EventID: vars["event_id"],
+	}
 
-	rc.RedisConn = GetInterfaceRedisConnection(rc)
-	CreateQuestionRedis(rc, question)
+	var rci RedisConnectionInterface
+	rci = new(RedisManager)
+
+	var dmi MySQLDbmapInterface
+	dmi = new(MySQLManager)
+
+	err = QuestionCreateFunc(rci, dmi, v, question)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	/* Response JSONの整形 */
+	// QuestionのStructをjsonとして変換
+	jsonBytes, err := json.Marshal(question)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	// 整形用のバッファを作成し、整形を実行
+	out := new(bytes.Buffer)
+	// プリフィックスなし、スペース2つでインデント
+	err = json.Indent(out, jsonBytes, "", "  ")
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	w.Write([]byte(out.String()))
 }
 
-// CreateQuestionDB DBに質問データの挿入
-func CreateQuestionDB(m *gorp.DbMap, question Question) error {
+// QuestionCreateFunc テストコードでテストしやすいように定義
+func QuestionCreateFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v QuestionCreateMuxVars, question Question) error {
+	var dbmap *gorp.DbMap
+	dbmap = dmi.GetMySQLdbmap()
+	defer dbmap.Db.Close()
+
+	// gorpのトランザクション処理。DBとRedisの両方とも書き込みが出来た場合に、commitする
+	trans, err := dbmap.Begin()
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
+
+	err = QuestionCreateDB(dbmap, question)
+	if err != nil {
+		logrus.Error(err)
+		trans.Rollback()
+		return err
+	}
+
+	err = QuestionCreateRedis(rci, dmi, v, question)
+	if err != nil {
+		logrus.Error(err)
+		trans.Rollback()
+		return err
+	}
+
+	err = trans.Commit()
+	if err != nil {
+		logrus.Error(err)
+		trans.Rollback()
+		return err
+	}
+
+	return nil
+}
+
+// QuestionCreateDB DBに質問データの挿入
+func QuestionCreateDB(dbmap *gorp.DbMap, question Question) error {
 	// debug SQL Trace
-	m.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
+	dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
 
 	/* データの挿入 */
-	err := m.Insert(&question)
+	err := dbmap.Insert(&question)
 
 	if err != nil {
 		logrus.Error(err)
@@ -90,10 +130,28 @@ func CreateQuestionDB(m *gorp.DbMap, question Question) error {
 }
 
 // SetQuestion QuestionをRedisに格納
-func (rc *RedisClient) SetQuestion(question Question) error {
+func SetQuestion(redisConn redis.Conn, dmi MySQLDbmapInterface, v QuestionCreateMuxVars, question Question) error {
 	// RedisClient にKeyを生成
-	rc.getQuestionsKey()
-	rc.checkRedisKey()
+	rks := GetRedisKeys(v.EventID)
+
+	// 多分並列処理できるやつ
+	/* Redisにデータが存在するか確認する。 */
+	yes, err := checkRedisKey(redisConn, rks)
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
+
+	if !yes {
+		dbmap := dmi.GetMySQLdbmap()
+		defer dbmap.Db.Close()
+		_, err := syncQuestion(redisConn, dbmap, v.EventID, rks)
+		// 同期にエラー
+		if err != nil {
+			logrus.Error(err)
+			return err
+		}
+	}
 
 	//HashMap SerializedされたJSONデータを格納
 	serializedJSON, err := json.Marshal(question)
@@ -102,19 +160,19 @@ func (rc *RedisClient) SetQuestion(question Question) error {
 		return err
 	}
 
-	if _, err := rc.RedisConn.Do("HSET", rc.QuestionsKey, question.ID, serializedJSON); err != nil {
+	if _, err := redisConn.Do("HSET", rks.QuestionKey, question.ID, serializedJSON); err != nil {
 		logrus.Error(err)
 		return err
 	}
 
 	//SortedSet(Like)
-	if _, err := rc.RedisConn.Do("ZADD", rc.LikeSortedKey, question.Like, question.ID); err != nil {
+	if _, err := redisConn.Do("ZADD", rks.LikeSortedKey, question.Like, question.ID); err != nil {
 		logrus.Error(err)
 		return err
 	}
 
 	//SortedSet(CreatedAt)
-	if _, err := rc.RedisConn.Do("ZADD", rc.CreatedSortedKey, question.CreatedAt.Unix(), question.ID); err != nil {
+	if _, err := redisConn.Do("ZADD", rks.CreatedSortedKey, question.CreatedAt.Unix(), question.ID); err != nil {
 		logrus.Error(err)
 		return err
 	}
@@ -122,9 +180,13 @@ func (rc *RedisClient) SetQuestion(question Question) error {
 	return nil
 }
 
-// CreateQuestionRedis Redisに質問データの挿入
-func CreateQuestionRedis(rc *RedisClient, question Question) error {
-	err := rc.SetQuestion(question)
+// QuestionCreateRedis Redisに質問データの挿入
+func QuestionCreateRedis(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v QuestionCreateMuxVars, question Question) error {
+	// RedisのConnection生成
+	redisConn := rci.GetRedisConnection()
+	defer redisConn.Close()
+
+	err := SetQuestion(redisConn, dmi, v, question)
 
 	if err != nil {
 		logrus.Error(err)

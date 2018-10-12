@@ -28,6 +28,7 @@ func init() {
 	// TODO
 	}
 
+	// Redis Poolを生成
 	pool.RedisPool = pool.NewRedisPool()
 }
 

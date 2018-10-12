@@ -8,16 +8,20 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func judgeCreateQuestionList(ql handler.QuestionList, t *testing.T) {
-	mockComment := ql.Data[0].Comment
+func judgeDeleteQuestionList(ql handler.QuestionList, t *testing.T) {
 	expectedComment := "I am Test"
 
-	if !reflect.DeepEqual(expectedComment, mockComment) {
-		t.Errorf("expected %q to eq %q", expectedComment, mockComment)
+	for _, question := range ql.Data {
+		if reflect.DeepEqual(expectedComment, question.Comment) {
+			t.Errorf("expected %q to not eq %q", expectedComment, question.Comment)
+		}
 	}
 }
 
-func TestCreateQuestion(t *testing.T) {
+func TestDeleteQuestion(t *testing.T) {
+	// Redisにテスト用のquestionを登録する。Create用のテストコードを実行することで流用
+	TestCreateQuestion(t)
+
 	var testQuestion handler.Question
 	testQuestion.ID = "11111111-0000-0000-0000-000000000000"
 	testQuestion.Object = "question"
@@ -35,10 +39,10 @@ func TestCreateQuestion(t *testing.T) {
 	var dmi handler.MySQLDbmapInterface
 	dmi = new(mockMySQLManager)
 
-	// testQuestionを実際に格納
-	handler.QuestionCreateFunc(rci, dmi, mockQCMuxVars, testQuestion)
+	// testQuestionを実際に削除
+	handler.QuestionDeleteFunc(rci, dmi, mockQDMuxVars, &testQuestion)
 
-	// QuestionListを取得し、testQuestionが含まれているか確認
+	// QuestionListを取得し、testQuestionが削除されているか確認
 	var questionList handler.QuestionList
 	questionList, err := handler.QuestionListFunc(rci, dmi, mockQLMuxVars)
 
@@ -47,5 +51,5 @@ func TestCreateQuestion(t *testing.T) {
 		t.Errorf("error :%v", err)
 	}
 
-	judgeCreateQuestionList(questionList, t)
+	judgeDeleteQuestionList(questionList, t)
 }

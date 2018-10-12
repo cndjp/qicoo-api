@@ -37,31 +37,22 @@ create-dotenv:
 test-main:
 	go test -v ./src/qicoo-api_test.go
 
-.PHONY: test-mysqlib
-test-mysqlib:
-	go test -v ./src/mysqlib/mysqlib_test.go ./src/mysqlib/mysqlib.go
-
 .PHONY: test-question-list
 test-question-list:
 	@if test "$(TRAVIS)" = "true" ;\
 		then \
 		go test -v ./src/handler/question-list_test.go \
 		  ./src/handler/question-handler_test.go \
-		  ./src/handler/question-handler.go \
-		  ./src/handler/question-list.go \
-		  ./src/handler/question-sync.go \
-		  ./src/handler/question-create.go \
-		  ./src/handler/question-delete.go \
-		  -run TestGetQuestionListInTheTravis ;\
+		  -run TestGetQuestionList;\
 	else \
+		docker run --name qicoo-api-test-mysql --rm -d -e MYSQL_ROOT_PASSWORD=my-secret-pw -p 3306:3306 mysql:5.6.27 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci;\
+		docker run --name qicoo-api-test-redis --rm -d -p 6379:6379 redis:4.0.10;\
+		sleep 15;\
 		go test -v ./src/handler/question-list_test.go \
 		  ./src/handler/question-handler_test.go \
-		  ./src/handler/question-handler.go \
-		  ./src/handler/question-list.go \
-		  ./src/handler/question-sync.go \
-		  ./src/handler/question-create.go \
-		  ./src/handler/question-delete.go \
-		  -run TestGetQuestionListInTheLocal ;\
+		  -run TestGetQuestionList;\
+		docker kill qicoo-api-test-mysql;\
+		docker kill qicoo-api-test-redis;\
 	fi
 
 .PHONY: test-question-create
@@ -70,17 +61,41 @@ test-question-create:
 		then \
 		go test -v ./src/handler/question-create_test.go \
 		  ./src/handler/question-handler_test.go \
-		  ./src/handler/question-list_test.go \
-		  -run TestCreateQuestionRedisInTheTravis ;\
+		  -run TestCreateQuestion;\
 	else \
+		docker run --name qicoo-api-test-mysql --rm -d -e MYSQL_ROOT_PASSWORD=my-secret-pw -p 3306:3306 mysql:5.6.27 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci;\
+		docker run --name qicoo-api-test-redis --rm -d -p 6379:6379 redis:4.0.10;\
+		sleep 15;\
 		go test -v ./src/handler/question-create_test.go \
 		  ./src/handler/question-handler_test.go \
-		  ./src/handler/question-list_test.go \
-		  -run TestCreateQuestionRedisInTheLocal ;\
+		  -run TestCreateQuestion;\
+		docker kill qicoo-api-test-mysql;\
+		docker kill qicoo-api-test-redis;\
 	fi
 
+.PHONY: test-question-delete
+test-question-delete:
+	@if test "$(TRAVIS)" = "true" ;\
+		then \
+		go test -v ./src/handler/question-delete_test.go \
+		  ./src/handler/question-create_test.go \
+		  ./src/handler/question-handler_test.go \
+		  -run TestDeleteQuestion;\
+	else \
+		docker run --name qicoo-api-test-mysql --rm -d -e MYSQL_ROOT_PASSWORD=my-secret-pw -p 3306:3306 mysql:5.6.27 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci;\
+		docker run --name qicoo-api-test-redis --rm -d -p 6379:6379 redis:4.0.10;\
+		sleep 15;\
+		go test -v ./src/handler/question-delete_test.go \
+		  ./src/handler/question-create_test.go \
+		  ./src/handler/question-handler_test.go \
+		  -run TestDeleteQuestion;\
+		docker kill qicoo-api-test-mysql;\
+		docker kill qicoo-api-test-redis;\
+	fi
+
+
 .PHONY: test
-test: clean-test test-mysqlib test-question-list test-question-create test-main
+test: clean-test test-question-list test-question-create test-main
 
 .PHONY: install
 install:
