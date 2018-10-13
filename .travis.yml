@@ -6,6 +6,7 @@ go:
 services:
   - mysql
   - redis-server
+  - docker
 
 before_script:
   - make clean-all
@@ -24,3 +25,12 @@ env:
 script: 
   - make
   - make test
+
+deploy:
+  provider: script
+  script:
+    - make docker-build
+    - make docker-push
+  on:
+    branch: hhiroshell/docker-on-travis
+    condition: $TRAVIS == "true"
