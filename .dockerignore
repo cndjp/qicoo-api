@@ -1,0 +1,8 @@
+src
+vendor
+.gitignore
+.travis.yml
+Gopkg.lock
+Gopkg.toml
+Makefile
+README.md
