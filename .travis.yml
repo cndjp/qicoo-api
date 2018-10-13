@@ -35,5 +35,5 @@ deploy:
   provider: script
   script: make docker-push
   on:
-    branch: hhiroshell/docker-on-travis
+    branch: master
     condition: $TRAVIS == "true"
