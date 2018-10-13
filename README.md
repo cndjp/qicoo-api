@@ -17,6 +17,28 @@ docker run --name qicoo-api-test-redis --rm -d --network host redis:4.0.10
 docker run --name qicoo-api-test --rm -d -e DB_URL="127.0.0.1:3306" -e DB_USER="root" -e DB_PASSWORD="my-secret-pw" -e REDIS_URL="127.0.0.1:6379" --network host cndjp/qicoo-api:0.0.1
 ```
 
+- QuestionList
+
+```
+curl -X GET 'http://localhost:8080/v1/jkd1812/questions?start=1&end=10&sort=created_at&order=desc'
+```
+
+- QuestionCreate
+```
+curl -X POST http://localhost:8080/v1/jkd1812/questions -d '
+{
+  "program_id": "1",
+  "comment": "test1"
+}
+'
+```
+
+- QuestionDelete
+```
+curl -X DELETE 'http://localhost:8080/v1/jkd1812/questions/00000000-0000-0000-0000-000000000000'
+```
+
+
 ## ローカルでgo test
 
 testを実行するには、上述のとおりdockerをinstallしている環境で `make test` を実行すると良い。
