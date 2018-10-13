@@ -17,7 +17,7 @@ SRCS	:= $(shell find . -type f -name '*.go')
 LDFLAGS := -ldflags="-s -X \"main.version=$(VERSION)\""
 
 $(TARGET): $(SRCS)
-	go build $(OPTS) $(LDFLAGS) -o bin/$(NAME) src/${NAME}.go
+	CGO_ENABLED=0 go build $(OPTS) $(LDFLAGS) -o bin/$(NAME) src/${NAME}.go
 
 .PHONY: create-dotenv
 create-dotenv:

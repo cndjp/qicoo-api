@@ -2,17 +2,32 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/cndjp/qicoo-api)](https://goreportcard.com/report/github.com/cndjp/qicoo-api)
 
 
+
+
 # qicoo-api
 
 test を動かすにはdockerサービスのインストールが必要です。
 
-## ローカルでの開発
-
-testを実行するには、上述のとおりdockerをinstallしている環境で `make test` を実行すると良い。
-なお、実際にMySQLとRedisと連携させて開発したい場合は以下の手順で DockerコンテナとしてMySQL・Redisを起動し、環境変数を設定すると良い
+## ローカルでqicoo-api実行
+ローカルで開発と同様に、以下コマンドでqicoo-apiをコンテナとして稼働させることが出来る
 
 ```
-docker run --name qicoo-api-test-mysql --rm -d -e MYSQL_ROOT_PASSWORD=my-secret-pw -p 3306:3306 mysql:5.6.27 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci;
+docker run --name qicoo-api-test-mysql --rm -d -e MYSQL_ROOT_PASSWORD=my-secret-pw --network host sugimount/qicoo-local-mysql:0.0.1 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci;
+docker run --name qicoo-api-test-redis --rm -d --network host redis:4.0.10
+docker run --name qicoo-api-test --rm -d -e DB_URL="127.0.0.1:3306" -e DB_USER="root" -e DB_PASSWORD="my-secret-pw" -e REDIS_URL="127.0.0.1:6379" --network host cndjp/qicoo-api:0.0.1
+```
+
+## ローカルでgo test
+
+testを実行するには、上述のとおりdockerをinstallしている環境で `make test` を実行すると良い。
+
+
+## ローカルで開発
+
+実際にMySQLとRedisと連携させて開発したい場合は以下の手順で DockerコンテナとしてMySQL・Redisを起動し、環境変数を設定すると良い
+
+```
+docker run --name qicoo-api-test-mysql --rm -d -e MYSQL_ROOT_PASSWORD=my-secret-pw -p 3306:3306 sugimount/qicoo-local-mysql:0.0.1 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci;
 docker run --name qicoo-api-test-redis --rm -d -p 6379:6379 redis:4.0.10;
 
 export DB_URL="127.0.0.1:3306"
