@@ -28,9 +28,7 @@ script:
 
 deploy:
   provider: script
-  script:
-    - make docker-build
-    - make docker-push
+  script: make docker-build && make docker-push
   on:
     branch: hhiroshell/docker-on-travis
     condition: $TRAVIS == "true"
