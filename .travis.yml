@@ -30,10 +30,11 @@ script:
 
 after_success:
   - find .
+  - make docker-build
 
 deploy:
   provider: script
-  script: find . && make docker-build && make docker-push
+  script: find . && make docker-push
   on:
     branch: hhiroshell/docker-on-travis
     condition: $TRAVIS == "true"
