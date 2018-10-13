@@ -135,7 +135,7 @@ lint:
 
 .PHONY: golint-install
 golint-install:
-	go get -u github.com/golang/lint/golint
+	go get -u golang.org/x/lint/golint
 
 .PHONY: cross-build
 cross-build: deps
