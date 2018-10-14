@@ -3,9 +3,12 @@ language: go
 go:
   - "1.11.x"
 
+sudo: required
+
 services:
   - mysql
   - redis-server
+  - docker
 
 before_script:
   - make clean-all
@@ -24,3 +27,13 @@ env:
 script: 
   - make
   - make test
+
+after_success:
+  - make docker-build
+
+deploy:
+  provider: script
+  script: make docker-push
+  on:
+    branch: master
+    condition: $TRAVIS == "true"
