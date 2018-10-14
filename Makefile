@@ -28,6 +28,8 @@ create-dotenv:
 		echo 'DB_PASSWORD=root' >> ./.env ;\
 		echo 'DB_URL=localhost:3306' >> ./.env ;\
 		echo 'REDIS_URL=localhost:6379' >> ./.env ;\
+		echo 'DOCKER_USERNAME=' >> ./.env ;\
+		echo 'DOCKER_PASSWORD=' >> ./.env ;\
 		echo 'TRAVIS=' >> ./.env ;\
 	else \
 		echo Not Work. ;\
@@ -154,6 +156,15 @@ lint:
 .PHONY: golint-install
 golint-install:
 	go get -u golang.org/x/lint/golint
+
+.PHONY: docker-build
+docker-build:
+	docker build -t cndjp/$(NAME):$(VERSION) .;\
+
+.PHONY: docker-push
+docker-push:
+	echo "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USERNAME)" --password-stdin
+	docker push cndjp/$(NAME):$(VERSION)
 
 .PHONY: cross-build
 cross-build: deps
