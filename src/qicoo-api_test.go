@@ -14,6 +14,7 @@ func TestMain(t *testing.T) {
 	const createQuestionMsg = "hello createQuestionFunc"
 	const listQuestionMsg = "hello listQuestionFunc"
 	const deleteQuestionMsg = "hello deleteQuestionFunc"
+	const likeQuestionMsg = "hello likeQuestionFunc"
 
 	r := httprouter.MakeRouter(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -24,6 +25,9 @@ func TestMain(t *testing.T) {
 		},
 		func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, deleteQuestionMsg)
+		},
+		func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, likeQuestionMsg)
 		})
 
 	/* CreateQuestion */
@@ -54,5 +58,15 @@ func TestMain(t *testing.T) {
 
 	if !reflect.DeepEqual(deleteQuestionMsg, mockDeleteRec.Body.String()) {
 		t.Errorf("expected %q to eq %q", deleteQuestionMsg, mockDeleteRec.Body.String())
+	}
+
+	/* LikeQuestion */
+	mockLikeReq := httptest.NewRequest("PUT", "/v1/mock/questions/questionDummyId/like", nil)
+	mockLikeRec := httptest.NewRecorder()
+
+	r.ServeHTTP(mockLikeRec, mockLikeReq)
+
+	if !reflect.DeepEqual(likeQuestionMsg, mockLikeRec.Body.String()) {
+		t.Errorf("expected %q to eq %q", likeQuestionMsg, mockLikeRec.Body.String())
 	}
 }
