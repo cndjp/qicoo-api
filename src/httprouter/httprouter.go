@@ -7,7 +7,7 @@ import (
 )
 
 // MakeRouter muxのroute設定用関数
-func MakeRouter(questionCreateFunc, questionListFunc, questionDeleteFunc, questionLikeFunc func(w http.ResponseWriter, r *http.Request)) *mux.Router {
+func MakeRouter(questionCreateFunc, questionListFunc, questionDeleteFunc, questionLikeFunc, livenessFunc, readinessFunc func(w http.ResponseWriter, r *http.Request)) *mux.Router {
 	r := mux.NewRouter()
 
 	// route QuestionCreate
@@ -33,6 +33,16 @@ func MakeRouter(questionCreateFunc, questionListFunc, questionDeleteFunc, questi
 	r.Path("/v1/{event_id:[a-zA-Z0-9-_]+}/questions/{question_id:[a-zA-Z0-9-_]+}/like").
 		Methods("PUT").
 		HandlerFunc(questionLikeFunc)
+
+	// route LivenessProbe
+	r.Path("/liveness").
+		Methods("GET").
+		HandlerFunc(livenessFunc)
+
+	// route ReadinessProbe
+	r.Path("/readiness").
+		Methods("GET").
+		HandlerFunc(readinessFunc)
 
 	return r
 }

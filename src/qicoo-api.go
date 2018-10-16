@@ -33,7 +33,7 @@ func init() {
 }
 
 func main() {
-	r := httprouter.MakeRouter(handler.QuestionCreateHandler, handler.QuestionListHandler, handler.QuestionDeleteHandler, handler.QuestionLikeHandler)
+	r := httprouter.MakeRouter(handler.QuestionCreateHandler, handler.QuestionListHandler, handler.QuestionDeleteHandler, handler.QuestionLikeHandler, handler.LivenessHandler, handler.ReadinessHandler)
 
 	logrus.Fatal(http.ListenAndServe(":8080", r))
 }

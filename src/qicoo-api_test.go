@@ -15,6 +15,8 @@ func TestMain(t *testing.T) {
 	const listQuestionMsg = "hello listQuestionFunc"
 	const deleteQuestionMsg = "hello deleteQuestionFunc"
 	const likeQuestionMsg = "hello likeQuestionFunc"
+	const livenessMsg = "hello livenessFunc"
+	const readinessMsg = "hello readinessFunc"
 
 	r := httprouter.MakeRouter(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -28,6 +30,12 @@ func TestMain(t *testing.T) {
 		},
 		func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, likeQuestionMsg)
+		},
+		func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, livenessMsg)
+		},
+		func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, readinessMsg)
 		})
 
 	/* CreateQuestion */
@@ -68,5 +76,25 @@ func TestMain(t *testing.T) {
 
 	if !reflect.DeepEqual(likeQuestionMsg, mockLikeRec.Body.String()) {
 		t.Errorf("expected %q to eq %q", likeQuestionMsg, mockLikeRec.Body.String())
+	}
+
+	/* liveness */
+	mockLiveReq := httptest.NewRequest("GET", "/liveness", nil)
+	mockLiveRec := httptest.NewRecorder()
+
+	r.ServeHTTP(mockLiveRec, mockLiveReq)
+
+	if !reflect.DeepEqual(livenessMsg, mockLiveRec.Body.String()) {
+		t.Errorf("expected %q to eq %q", livenessMsg, mockLiveRec.Body.String())
+	}
+
+	/* readiness */
+	mockReadReq := httptest.NewRequest("GET", "/readiness", nil)
+	mockReadRec := httptest.NewRecorder()
+
+	r.ServeHTTP(mockReadRec, mockReadReq)
+
+	if !reflect.DeepEqual(readinessMsg, mockReadRec.Body.String()) {
+		t.Errorf("expected %q to eq %q", readinessMsg, mockReadRec.Body.String())
 	}
 }
