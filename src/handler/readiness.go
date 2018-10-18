@@ -8,11 +8,9 @@ import (
 
 // ReadinessHandler ReadinessProbe用function
 func ReadinessHandler(w http.ResponseWriter, r *http.Request) {
-	var rci RedisConnectionInterface
-var rci RedisConnectionInterface = new(RedisManager)
+	var rci RedisConnectionInterface = new(RedisManager)
 
-	var dmi MySQLDbmapInterface
-	dmi = new(MySQLManager)
+	var dmi MySQLDbmapInterface = new(MySQLManager)
 
 	err := ReadinessFunc(rci, dmi)
 	if err != nil {
