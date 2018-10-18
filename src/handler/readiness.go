@@ -9,7 +9,7 @@ import (
 // ReadinessHandler ReadinessProbe用function
 func ReadinessHandler(w http.ResponseWriter, r *http.Request) {
 	var rci RedisConnectionInterface
-	rci = new(RedisManager)
+var rci RedisConnectionInterface = new(RedisManager)
 
 	var dmi MySQLDbmapInterface
 	dmi = new(MySQLManager)
