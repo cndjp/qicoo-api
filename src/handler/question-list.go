@@ -14,6 +14,11 @@ import (
 
 // QuestionListHandler QuestionオブジェクトをRedisから取得する。存在しない場合はDBから取得し、Redisへ格納する
 func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
+	// Headerの設定
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
 	// URLに含まれている event_id を取得
 	vars := mux.Vars(r)
 	start, err := strconv.Atoi(vars["start"])
