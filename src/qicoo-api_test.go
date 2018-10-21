@@ -25,7 +25,7 @@ func TestMain(t *testing.T) {
 		},
 		func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, deleteQuestionMsg)
-		}, handler.CORSPreflightHandler)
+		}, nil)
 
 	/* CreateQuestion */
 	mockCreateReq := httptest.NewRequest("POST", "/v1/mock/questions", nil)
