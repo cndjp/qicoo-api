@@ -19,7 +19,6 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	// Headerの設定
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
 	// DBとRedisに書き込むためのstiruct Object を生成。POST REQUEST のBodyから値を取得
 	var question Question

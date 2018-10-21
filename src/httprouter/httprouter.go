@@ -7,13 +7,16 @@ import (
 )
 
 // MakeRouter muxのroute設定用関数
-func MakeRouter(questionCreateFunc, questionListFunc, questionDeleteFunc func(w http.ResponseWriter, r *http.Request)) *mux.Router {
+func MakeRouter(questionCreateFunc, questionListFunc, questionDeleteFunc, corsPrelightFunc func(w http.ResponseWriter, r *http.Request)) *mux.Router {
 	r := mux.NewRouter()
 
 	// route QuestionCreate
 	r.Path("/v1/{event_id:[a-zA-Z0-9-_]+}/questions").
 		Methods("POST").
 		HandlerFunc(questionCreateFunc)
+	r.Path("/v1/{event_id:[a-zA-Z0-9-_]+}/questions").
+		Methods("OPTIONS").
+		HandlerFunc(corsPrelightFunc)
 
 	// route QuestionList
 	r.Path("/v1/{event_id:[a-zA-Z0-9-_]+}/questions").
@@ -28,6 +31,9 @@ func MakeRouter(questionCreateFunc, questionListFunc, questionDeleteFunc func(w 
 	r.Path("/v1/{event_id:[a-zA-Z0-9-_]+}/questions/{question_id:[a-zA-Z0-9-_]+}").
 		Methods("DELETE").
 		HandlerFunc(questionDeleteFunc)
+	r.Path("/v1/{event_id:[a-zA-Z0-9-_]+}/questions/{question_id:[a-zA-Z0-9-_]+}").
+		Methods("OPTIONS").
+		HandlerFunc(corsPrelightFunc)
 
 	return r
 }
