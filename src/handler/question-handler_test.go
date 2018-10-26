@@ -37,6 +37,11 @@ var mockQDMuxVars = handler.QuestionDeleteMuxVars{
 	EventID: testEventID,
 }
 
+var mockQLikeMuxVars = handler.QuestionLikeMuxVars{
+	EventID:    testEventID,
+	QuestionID: "00000000-0000-0000-0000-000000000000",
+}
+
 func isTravisEnv() bool {
 	if os.Getenv("TRAVIS") == "true" {
 		return true

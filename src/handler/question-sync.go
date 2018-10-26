@@ -9,6 +9,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var redisExpireSeconds = 10800
+
 // これ並列化できる（チャンネル込みで）
 func checkRedisKey(conn redis.Conn, rks RedisKeys) (bool, error) {
 	// 3種類のKeyが存在しない場合はデータが何かしら不足しているため、データの同期を行う
@@ -89,6 +91,22 @@ func syncQuestion(conn redis.Conn, m *gorp.DbMap, eventID string, rks RedisKeys)
 			logrus.Error(err)
 			return 0, err
 		}
+	}
+
+	// Redisに有効期限(3時間)を設定する
+	if _, err := conn.Do("EXPIRE", rks.QuestionKey, redisExpireSeconds); err != nil {
+		logrus.Error(err)
+		return 0, err
+	}
+
+	if _, err := conn.Do("EXPIRE", rks.LikeSortedKey, redisExpireSeconds); err != nil {
+		logrus.Error(err)
+		return 0, err
+	}
+
+	if _, err := conn.Do("EXPIRE", rks.CreatedSortedKey, redisExpireSeconds); err != nil {
+		logrus.Error(err)
+		return 0, err
 	}
 
 	return len(questions), nil

@@ -96,8 +96,26 @@ test-question-delete:
 	fi
 
 
+test-question-like:
+	@if test "$(TRAVIS)" = "true" ;\
+		then \
+		go test -v ./src/handler/question-like_test.go \
+		  ./src/handler/question-handler_test.go \
+		  -run TestQuestionLike;\
+	else \
+		docker run --name qicoo-api-test-mysql --rm -d -e MYSQL_ROOT_PASSWORD=my-secret-pw -p 3306:3306 mysql:5.6.27 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci;\
+		docker run --name qicoo-api-test-redis --rm -d -p 6379:6379 redis:4.0.10;\
+		sleep 15;\
+		go test -v ./src/handler/question-like_test.go \
+		  ./src/handler/question-handler_test.go \
+		  -run TestQuestionLike;\
+		docker kill qicoo-api-test-mysql;\
+		docker kill qicoo-api-test-redis;\
+	fi
+
+
 .PHONY: test
-test: clean-test test-question-list test-question-create test-main
+test: clean-test test-question-list test-question-create test-question-like test-main
 
 .PHONY: install
 install:

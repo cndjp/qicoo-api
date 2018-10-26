@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -113,8 +114,15 @@ func QuestionDeleteDB(dbmap *gorp.DbMap, q *Question) error {
 	dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
 
 	// delete実行
-	_, err := dbmap.Delete(q)
+	count, err := dbmap.Delete(q)
 	if err != nil {
+		logrus.Error(err)
+		return err
+	}
+
+	if count == 0 {
+		emsg := "not found delete Quesiton. Question ID :" + q.ID
+		err = errors.New(emsg)
 		logrus.Error(err)
 		return err
 	}

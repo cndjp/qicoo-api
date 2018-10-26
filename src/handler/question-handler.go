@@ -4,6 +4,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/cndjp/qicoo-api/src/mysqlib"
@@ -50,6 +51,12 @@ type QuestionCreateMuxVars struct {
 // QuestionDeleteMuxVars RequestURLを格納するstruct
 type QuestionDeleteMuxVars struct {
 	EventID string
+}
+
+// QuestionLikeMuxVars RequestURLを格納するstruct
+type QuestionLikeMuxVars struct {
+	EventID    string
+	QuestionID string
 }
 
 // RedisKeys Redis用のkeyを扱うstruct
@@ -142,4 +149,42 @@ func TimeNowRoundDown() time.Time {
 	}
 
 	return nowRound
+}
+
+// getQuestion RedisからQuestionを取得する
+func getQuestion(conn redis.Conn, dbmap *gorp.DbMap, eventID string, questionID string, rks RedisKeys) (Question, error) {
+	var q Question
+
+	yes, err := checkRedisKey(conn, rks)
+	if err != nil {
+		logrus.Error(err)
+		return q, err
+	}
+
+	if !yes {
+		_, err := syncQuestion(conn, dbmap, eventID, rks)
+		// 同期にエラー
+		if err != nil {
+			logrus.Error(err)
+			return q, err
+		}
+	}
+
+	//HashからQuesitonのデータを取得する
+	bytesSlice, err := redis.ByteSlices(conn.Do("HMGET", rks.QuestionKey, questionID))
+	println("QuestionLikeRedis:", "HMGET", rks.QuestionKey, questionID)
+	if err != nil {
+		logrus.Error(err)
+		return q, err
+	}
+
+	for _, bytes := range bytesSlice {
+		err = json.Unmarshal(bytes, &q)
+		if err != nil {
+			logrus.Error(err)
+			return q, err
+		}
+	}
+
+	return q, err
 }
