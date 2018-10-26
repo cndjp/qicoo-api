@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/cndjp/qicoo-api/src/handler"
 	"github.com/cndjp/qicoo-api/src/httprouter"
 )
 
@@ -36,7 +37,8 @@ func TestMain(t *testing.T) {
 		},
 		func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, readinessMsg)
-		})
+		},
+		nil)
 
 	/* CreateQuestion */
 	mockCreateReq := httptest.NewRequest("POST", "/v1/mock/questions", nil)
@@ -97,4 +99,46 @@ func TestMain(t *testing.T) {
 	if !reflect.DeepEqual(readinessMsg, mockReadRec.Body.String()) {
 		t.Errorf("expected %q to eq %q", readinessMsg, mockReadRec.Body.String())
 	}
+}
+
+func TestCORS(t *testing.T) {
+	/* Preflight request (CORS) */
+
+	tests := []struct {
+		header        string
+		expectedValue string
+	}{
+		{"Access-Control-Allow-Origin", "*"},
+		{"Access-Control-Allow-Headers", "Content-Type"},
+		{"Access-Control-Allow-Methods", "POST, PUT, DELETE"},
+		{"Access-Control-Max-Age", "86400"},
+	}
+
+	r := httprouter.MakeRouter(
+		nil, nil, nil, nil, nil, nil, handler.CORSPreflightHandler)
+
+	mockPreCreateReq := httptest.NewRequest("OPTIONS", "/v1/mock/questions", nil)
+	mockPreCreateRec := httptest.NewRecorder()
+	r.ServeHTTP(mockPreCreateRec, mockPreCreateReq)
+
+	for _, tt := range tests {
+		t.Run(tt.header, func(t *testing.T) {
+			if mockPreCreateRec.Header().Get(tt.header) != tt.expectedValue {
+				t.Errorf("Prepost: expected %q to eq %q", tt.expectedValue, mockPreCreateRec.Header().Get(tt.header))
+			}
+		})
+	}
+
+	// Browsers send a preflight request to the same path before also PUT and DELETE request.
+	mockPreDeleteReq := httptest.NewRequest("OPTIONS", "/v1/mock/questions/00000000-0000-4000-0000-000000000000", nil)
+	mockPreDeleteRec := httptest.NewRecorder()
+	r.ServeHTTP(mockPreDeleteRec, mockPreDeleteReq)
+	for _, tt := range tests {
+		t.Run(tt.header, func(t *testing.T) {
+			if mockPreDeleteRec.Header().Get(tt.header) != tt.expectedValue {
+				t.Errorf("Preput/delete: expected %q to eq %q", tt.expectedValue, mockPreDeleteRec.Header().Get(tt.header))
+			}
+		})
+	}
+
 }

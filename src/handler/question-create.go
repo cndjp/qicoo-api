@@ -16,6 +16,9 @@ import (
 
 // QuestionCreateHandler QuestionオブジェクトをDBとRedisに書き込む
 func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
+	// Headerの設定
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	// DBとRedisに書き込むためのstiruct Object を生成。POST REQUEST のBodyから値を取得
 	var question Question
