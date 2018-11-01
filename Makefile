@@ -169,7 +169,7 @@ docker-push:
 .PHONY: github-clone
 github-clone:
 	chmod +x ./github.sh
-	./github.sh
+	./github.sh $(VERSION)
 
 .PHONY: cross-build
 cross-build: deps
