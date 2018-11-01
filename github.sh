@@ -30,7 +30,9 @@ hub clone "https://github.com/cndjp/qicoo-api-manifests.git" _
 cd _
 hub checkout -b "travis/$VERSION"
 sed -e "s/cndjp\/qicoo-api:CURRENT/cndjp\/qicoo-api:$VERSION/g" ./overlays/staging/qicoo-api-patch.yaml
+touch test.txt
 hub add .
+hub diff
 hub commit -m "コミットメッセージ"
 
 # Pull Requestを送る
