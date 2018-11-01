@@ -16,8 +16,6 @@ DIST_DIRS := find * -type d -exec
 SRCS	:= $(shell find . -type f -name '*.go')
 LDFLAGS := -ldflags="-s -X \"main.version=$(VERSION)\""
 
-HUB=2.6.0
-
 $(TARGET): $(SRCS)
 	CGO_ENABLED=0 go build $(OPTS) $(LDFLAGS) -o bin/$(NAME) src/${NAME}.go
 
@@ -170,23 +168,7 @@ docker-push:
 
 .PHONY: github-clone
 github-clone:
-	mkdir -p "$(HOME)/.config"
-	set +x
-    echo "https://$(GITHUB_TOKEN):@github.com" > "$(HOME)/.config/git-credential"
-    echo "github.com:
-    - oauth_token: $(GITHUB_TOKEN)
-      user: "$(GITHUB_USER)" > "$(HOME)/.config/hub"
-    unset "$(GITHUB_TOKEN)"
-    set -x
-    git config --global user.name  "$(GITHUB_USER)"
-    git config --global user.email "$(GITHUB_USER)@users.noreply.github.com"
-    git config --global core.autocrlf "input"
-    git config --global hub.protocol "https"
-    git config --global credential.helper "store --file=$(HOME)/.config/git-credential"
-    curl -LO "https://github.com/github/hub/releases/download/v$(HUB)/hub-linux-amd64-$(HUB).tar.gz"
-    tar -C "$(HOME)" -zxf "hub-linux-amd64-$(HUB).tar.gz"
-    export PATH="$(PATH):$(HOME)/hub-linux-amd64-$(HUB)"
-    hub clone "https://github.com/cndjp/qicoo-api-manifests.git" _
+	./github.sh
 
 .PHONY: cross-build
 cross-build: deps
