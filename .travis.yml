@@ -35,7 +35,8 @@ deploy:
   provider: script
   script: make docker-push
   on:
-    branch: master
+    # branch: master
+    branch: hhiroshell/travis-github
     condition: $TRAVIS == "true"
 
 after_deploy:
