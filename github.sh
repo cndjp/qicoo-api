@@ -21,7 +21,7 @@ git config --global credential.helper "store --file=$HOME/.config/git-credential
 # hubをインストールする
 curl -LO "https://github.com/github/hub/releases/download/v$HUB/hub-linux-amd64-$HUB.tgz"
 tar -C "$HOME" -zxf "hub-linux-amd64-$HUB.tgz"
-export PATH="$PATH:$HOME/hub-linux-amd64-$HUB"
+export PATH="$PATH:$HOME/hub-linux-amd64-$HUB/bin"
 
 # リポジトリに変更をコミットする
 hub clone "https://github.com/cndjp/qicoo-api-manifests.git" _
