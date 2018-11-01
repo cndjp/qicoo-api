@@ -25,3 +25,12 @@ export PATH="$PATH:$HOME/hub-linux-amd64-$HUB/bin"
 
 # リポジトリに変更をコミットする
 hub clone "https://github.com/cndjp/qicoo-api-manifests.git" _
+cd _
+hub checkout -b "travis/$VERSION"
+touch hoge.txt
+hub add .
+hub commit -m "コミットメッセージ"
+
+# Pull Requestを送る
+hub push origin "travis/$VERSION"
+hub pull-request -m "Pull Requestメッセージ"
