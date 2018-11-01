@@ -29,7 +29,7 @@ export PATH="$PATH:$HOME/hub-linux-amd64-$HUB/bin"
 hub clone "https://github.com/cndjp/qicoo-api-manifests.git" _
 cd _
 hub checkout -b "travis/$VERSION"
-touch hoge.txt
+sed -e "s/cndjp\/qicoo-api:CURRENT/cndjp\/qicoo-api:$VERSION/g" ./overlays/staging/qicoo-api-patch.yaml
 hub add .
 hub commit -m "コミットメッセージ"
 
