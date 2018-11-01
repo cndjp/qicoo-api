@@ -16,6 +16,8 @@ DIST_DIRS := find * -type d -exec
 SRCS	:= $(shell find . -type f -name '*.go')
 LDFLAGS := -ldflags="-s -X \"main.version=$(VERSION)\""
 
+HUB=2.6.0
+
 $(TARGET): $(SRCS)
 	CGO_ENABLED=0 go build $(OPTS) $(LDFLAGS) -o bin/$(NAME) src/${NAME}.go
 
@@ -168,7 +170,6 @@ docker-push:
 
 .PHONY: github-clone
 github-clone:
-    HUB="2.6.0"
 	mkdir -p "$(HOME)/.config"
 	set +x
     echo "https://$(GITHUB_TOKEN):@github.com" > "$(HOME)/.config/git-credential"
