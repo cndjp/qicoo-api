@@ -37,3 +37,6 @@ deploy:
   on:
     branch: master
     condition: $TRAVIS == "true"
+
+after_deploy:
+  - make github-clone
