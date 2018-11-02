@@ -169,7 +169,6 @@ docker-push:
 
 .PHONY: github-setup
 github-setup:
-	set +x
 	mkdir -p "$(HOME)/.config"
 	echo "https://$(GITHUB_TOKEN):@github.com" > "$(HOME)/.config/git-credential"
 	echo "github.com:" > "$(HOME)/.config/hub"
@@ -182,12 +181,18 @@ github-setup:
 	git config --global credential.helper "store --file=$(HOME)/.config/git-credential"
 	curl -LO "https://github.com/github/hub/releases/download/v$(HUB_VERSION)/hub-linux-amd64-$(HUB_VERSION).tgz"
 	tar -C "$(HOME)" -zxf "hub-linux-amd64-$(HUB_VERSION).tgz"
-	export PATH=$(PATH):$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin
-	set -x
 
 .PHONY: github-pr
 github-pr: github-setup
-	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub clone "https://github.com/cndjp/qicoo-api-manifests.git" _
+	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub clone "https://github.com/cndjp/qicoo-api-manifests.git" qicoo-api-manifests
+    cd qicoo-api-manifests
+	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub checkout -b "travis/$(VERSION)"
+	# sed -i -e "s/cndjp\/qicoo-api:v[0-9]*.[0-9]*.[0-9]*/cndjp\/qicoo-api:$(VERSION)/g" ./overlays/staging/qicoo-api-patch.yaml
+	sed -i -e "s/image: cndjp\/qicoo-api:CURRENT/image: cndjp\/qicoo-api:$(VERSION)/g" ./overlays/staging/qicoo-api-patch.yaml
+	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub add .
+	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub commit -m "Update the image: cndjp\/qicoo-api:$(VERSION)"
+	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub push --set-upstream origin "travis/$(VERSION)"
+	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub pull-request -m "Update the image: cndjp\/qicoo-api:$(VERSION)"
 
 .PHONY: cross-build
 cross-build: deps
