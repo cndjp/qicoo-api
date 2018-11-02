@@ -35,20 +35,13 @@ deploy:
   - provider: script
     script: make docker-push
     on:
-      # branch: master
-      branch:
-        - hhiroshell/travis-github
-        - release
       condition: $TRAVIS == "true"
-  - provider: script
-    script: make github-pr
-    on:
-      # branch: master
       branch:
-        - hhiroshell/travis-github
+        - release
+  - provider: script
+    script: make github-update-manifest
+    on:
+      condition: $TRAVIS == "true"
+      branch:
         - release
         - master
-      condition: $TRAVIS == "true"
-
-# after_deploy:
-#   - make github-pr
