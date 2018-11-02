@@ -40,4 +40,5 @@ deploy:
     condition: $TRAVIS == "true"
 
 after_deploy:
-  - make github-clone
+  - make github-setup
+  - make github-pr

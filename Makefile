@@ -16,6 +16,8 @@ DIST_DIRS := find * -type d -exec
 SRCS	:= $(shell find . -type f -name '*.go')
 LDFLAGS := -ldflags="-s -X \"main.version=$(VERSION)\""
 
+HUB_VERSION = 2.6.0
+
 $(TARGET): $(SRCS)
 	CGO_ENABLED=0 go build $(OPTS) $(LDFLAGS) -o bin/$(NAME) src/${NAME}.go
 
@@ -95,7 +97,7 @@ test-question-delete:
 		docker kill qicoo-api-test-redis;\
 	fi
 
-
+.PHONY: test-question-like
 test-question-like:
 	@if test "$(TRAVIS)" = "true" ;\
 		then \
@@ -112,7 +114,6 @@ test-question-like:
 		docker kill qicoo-api-test-mysql;\
 		docker kill qicoo-api-test-redis;\
 	fi
-
 
 .PHONY: test
 test: clean-test test-question-list test-question-create test-question-like test-main
@@ -166,10 +167,25 @@ docker-push:
 	echo "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USERNAME)" --password-stdin
 	docker push cndjp/$(NAME):$(VERSION)
 
-.PHONY: github-clone
-github-clone:
-	chmod +x ./github.sh
-	./github.sh $(VERSION)
+.PHONY: github-setup
+github-setup:
+	mkdir -p "$(HOME)/.config"
+	echo "https://$(GITHUB_TOKEN):@github.com" > "$(HOME)/.config/git-credential"
+	echo "github.com:" > "$(HOME)/.config/hub"
+	echo "- oauth_token: $(GITHUB_TOKEN)" >> "$(HOME)/.config/hub"
+	echo "  user: $(GITHUB_USER)" >> "$(HOME)/.config/hub"
+	git config --global user.name  "$(GITHUB_USER)"
+	git config --global user.email "$(GITHUB_USER)@users.noreply.github.com"
+	git config --global core.autocrlf "input"
+	git config --global hub.protocol "https"
+	git config --global credential.helper "store --file=$(HOME)/.config/git-credential"
+	curl -LO "https://github.com/github/hub/releases/download/v$(HUB_VERSION)/hub-linux-amd64-$(HUB_VERSION).tgz"
+	tar -C "$(HOME)" -zxf "hub-linux-amd64-$(HUB).tgz"
+	export PATH="$(PATH):$(HOME)/hub-linux-amd64-$(HUB)/bin"
+
+.PHONY: github-pr
+github-pr: github-setup
+	hub clone "https://github.com/cndjp/qicoo-api-manifests.git" _
 
 .PHONY: cross-build
 cross-build: deps
