@@ -16,6 +16,8 @@ DIST_DIRS := find * -type d -exec
 SRCS	:= $(shell find . -type f -name '*.go')
 LDFLAGS := -ldflags="-s -X \"main.version=$(VERSION)\""
 
+HUB_VERSION = 2.6.0
+
 $(TARGET): $(SRCS)
 	CGO_ENABLED=0 go build $(OPTS) $(LDFLAGS) -o bin/$(NAME) src/${NAME}.go
 
@@ -95,7 +97,7 @@ test-question-delete:
 		docker kill qicoo-api-test-redis;\
 	fi
 
-
+.PHONY: test-question-like
 test-question-like:
 	@if test "$(TRAVIS)" = "true" ;\
 		then \
@@ -112,7 +114,6 @@ test-question-like:
 		docker kill qicoo-api-test-mysql;\
 		docker kill qicoo-api-test-redis;\
 	fi
-
 
 .PHONY: test
 test: clean-test test-question-list test-question-create test-question-like test-main
@@ -166,6 +167,39 @@ docker-push:
 	echo "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USERNAME)" --password-stdin
 	docker push cndjp/$(NAME):$(VERSION)
 
+.PHONY: github-setup
+github-setup:
+	echo "TRAVIS_BRANCH: $(TRAVIS_BRANCH)"
+	mkdir -p "$(HOME)/.config"
+	echo "https://$(GITHUB_TOKEN):@github.com" > "$(HOME)/.config/git-credential"
+	echo "github.com:" > "$(HOME)/.config/hub"
+	echo "- oauth_token: $(GITHUB_TOKEN)" >> "$(HOME)/.config/hub"
+	echo "  user: $(GITHUB_USER)" >> "$(HOME)/.config/hub"
+	git config --global user.name "$(GITHUB_USER)"
+	git config --global user.email "$(GITHUB_USER)@users.noreply.github.com"
+	git config --global core.autocrlf "input"
+	git config --global hub.protocol "https"
+	git config --global credential.helper "store --file=$(HOME)/.config/git-credential"
+	curl -LO "https://github.com/github/hub/releases/download/v$(HUB_VERSION)/hub-linux-amd64-$(HUB_VERSION).tgz"
+	tar -C "$(HOME)" -zxf "hub-linux-amd64-$(HUB_VERSION).tgz"
+
+.PHONY: github-update-manifest
+github-update-manifest: github-setup
+	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub clone "https://github.com/cndjp/qicoo-api-manifests.git" $(HOME)/qicoo-api-manifests
+	cd $(HOME)/qicoo-api-manifests && \
+		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub checkout -b "travis/$(VERSION)"
+	@if test "$(TRAVIS_BRANCH)" = "master"; \
+		then \
+		sed -i -e "s/image: cndjp\/qicoo-api:v[0-9]*.[0-9]*.[0-9]*/image: cndjp\/qicoo-api:$(VERSION)/g" $(HOME)/qicoo-api-manifests/overlays/production/qicoo-api-patch.yaml; \
+	else \
+		sed -i -e "s/image: cndjp\/qicoo-api:v[0-9]*.[0-9]*.[0-9]*/image: cndjp\/qicoo-api:$(VERSION)/g" $(HOME)/qicoo-api-manifests/overlays/staging/qicoo-api-patch.yaml; \
+	fi
+	cd $(HOME)/qicoo-api-manifests && \
+		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub add . && \
+		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub commit -m "Update the image: cndjp/qicoo-api:$(VERSION)" && \
+		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub push --set-upstream origin "travis/$(VERSION)" && \
+		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub pull-request -m "Update the image: cndjp/qicoo-api:$(VERSION)"
+
 .PHONY: cross-build
 cross-build: deps
 	for os in darwin linux windows; do \
@@ -182,4 +216,3 @@ dist:
 		$(DIST_DIRS) tar -zcf {}-$(VERSION).tar.gz {} \; && \
 		$(DIST_DIRS) zip -r {}-$(VERSION).zip {} \; && \
 		cd ..
-

@@ -17,14 +17,14 @@ before_script:
   - make golint-install
   - make lint
   - mysql -uroot -e "create database test"
-  
+
 env:
   global:
     DB_USER=root
     DB_URL=localhost:3306
     REDIS_URL=localhost:6379
 
-script: 
+script:
   - make
   - make test
 
@@ -32,8 +32,16 @@ after_success:
   - make docker-build
 
 deploy:
-  provider: script
-  script: make docker-push
-  on:
-    branch: master
-    condition: $TRAVIS == "true"
+  - provider: script
+    script: make docker-push
+    on:
+      condition: $TRAVIS == "true"
+      branch:
+        - release
+  - provider: script
+    script: make github-update-manifest
+    on:
+      condition: $TRAVIS == "true"
+      branch:
+        - release
+        - master
