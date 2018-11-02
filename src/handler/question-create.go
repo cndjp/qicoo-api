@@ -7,15 +7,18 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/cndjp/qicoo-api/src/loglib"
 	"github.com/go-gorp/gorp"
 	"github.com/gomodule/redigo/redis"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
 )
 
 // QuestionCreateHandler QuestionオブジェクトをDBとRedisに書き込む
 func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
 	// Headerの設定
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -27,7 +30,7 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	err = decoder.Decode(&question)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return
 	}
 
@@ -47,6 +50,8 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 		EventID: vars["event_id"],
 	}
 
+	sugar.Infof("Request QuestionCreate process. EventID:%s, QuestionID:%s, Comment:%s, Username:%s, ProgramID:%s, Like:%d, CreatedAt:%s", v.EventID, question.ID, question.Comment, question.Username, question.ProgramID, question.Like, question.CreatedAt)
+
 	var rci RedisConnectionInterface
 	rci = new(RedisManager)
 
@@ -55,7 +60,7 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = QuestionCreateFunc(rci, dmi, v, question)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return
 	}
 
@@ -63,7 +68,7 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	// QuestionのStructをjsonとして変換
 	jsonBytes, err := json.Marshal(question)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return
 	}
 
@@ -72,15 +77,19 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	// プリフィックスなし、スペース2つでインデント
 	err = json.Indent(out, jsonBytes, "", "  ")
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return
 	}
 
 	w.Write([]byte(out.String()))
+	sugar.Infof("Response QuestionCreate process. QuestionCreate:%s", jsonBytes)
 }
 
 // QuestionCreateFunc テストコードでテストしやすいように定義
 func QuestionCreateFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v QuestionCreateMuxVars, question Question) error {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
 	var dbmap *gorp.DbMap
 	dbmap = dmi.GetMySQLdbmap()
 	defer dbmap.Db.Close()
@@ -88,27 +97,27 @@ func QuestionCreateFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v
 	// gorpのトランザクション処理。DBとRedisの両方とも書き込みが出来た場合に、commitする
 	trans, err := dbmap.Begin()
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return err
 	}
 
 	err = QuestionCreateDB(dbmap, question)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		trans.Rollback()
 		return err
 	}
 
 	err = QuestionCreateRedis(rci, dmi, v, question)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		trans.Rollback()
 		return err
 	}
 
 	err = trans.Commit()
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		trans.Rollback()
 		return err
 	}
@@ -118,14 +127,17 @@ func QuestionCreateFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v
 
 // QuestionCreateDB DBに質問データの挿入
 func QuestionCreateDB(dbmap *gorp.DbMap, question Question) error {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
 	// debug SQL Trace
-	dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
+	dbmap.TraceOn("", log.New(os.Stdout, "gorptrace: ", log.LstdFlags))
 
 	/* データの挿入 */
 	err := dbmap.Insert(&question)
 
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return err
 	}
 
@@ -134,6 +146,9 @@ func QuestionCreateDB(dbmap *gorp.DbMap, question Question) error {
 
 // SetQuestion QuestionをRedisに格納
 func SetQuestion(redisConn redis.Conn, dmi MySQLDbmapInterface, v QuestionCreateMuxVars, question Question) error {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
 	// RedisClient にKeyを生成
 	rks := GetRedisKeys(v.EventID)
 
@@ -141,7 +156,7 @@ func SetQuestion(redisConn redis.Conn, dmi MySQLDbmapInterface, v QuestionCreate
 	/* Redisにデータが存在するか確認する。 */
 	yes, err := checkRedisKey(redisConn, rks)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return err
 	}
 
@@ -151,7 +166,7 @@ func SetQuestion(redisConn redis.Conn, dmi MySQLDbmapInterface, v QuestionCreate
 		_, err := syncQuestion(redisConn, dbmap, v.EventID, rks)
 		// 同期にエラー
 		if err != nil {
-			logrus.Error(err)
+			sugar.Error(err)
 			return err
 		}
 	}
@@ -159,24 +174,27 @@ func SetQuestion(redisConn redis.Conn, dmi MySQLDbmapInterface, v QuestionCreate
 	//HashMap SerializedされたJSONデータを格納
 	serializedJSON, err := json.Marshal(question)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return err
 	}
 
+	sugar.Infof("Redis Command of SetQuestion. command='HSET %s %s %s'", rks.QuestionKey, question.ID, serializedJSON)
 	if _, err := redisConn.Do("HSET", rks.QuestionKey, question.ID, serializedJSON); err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return err
 	}
 
 	//SortedSet(Like)
+	sugar.Infof("Redis Command of SetQuestion. command='ZADD %s %s %s'", rks.LikeSortedKey, question.Like, question.ID)
 	if _, err := redisConn.Do("ZADD", rks.LikeSortedKey, question.Like, question.ID); err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return err
 	}
 
 	//SortedSet(CreatedAt)
+	sugar.Infof("Redis Command of SetQuestion. command='ZADD %s %s %s'", rks.CreatedSortedKey, question.CreatedAt.Unix(), question.ID)
 	if _, err := redisConn.Do("ZADD", rks.CreatedSortedKey, question.CreatedAt.Unix(), question.ID); err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return err
 	}
 
@@ -185,6 +203,9 @@ func SetQuestion(redisConn redis.Conn, dmi MySQLDbmapInterface, v QuestionCreate
 
 // QuestionCreateRedis Redisに質問データの挿入
 func QuestionCreateRedis(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v QuestionCreateMuxVars, question Question) error {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
 	// RedisのConnection生成
 	redisConn := rci.GetRedisConnection()
 	defer redisConn.Close()
@@ -192,7 +213,7 @@ func QuestionCreateRedis(rci RedisConnectionInterface, dmi MySQLDbmapInterface, 
 	err := SetQuestion(redisConn, dmi, v, question)
 
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return err
 	}
 
