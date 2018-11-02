@@ -185,9 +185,8 @@ github-setup:
 .PHONY: github-pr
 github-pr: github-setup
 	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub clone "https://github.com/cndjp/qicoo-api-manifests.git" qicoo-api-manifests
-    cd qicoo-api-manifests
+	cd qicoo-api-manifests
 	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub checkout -b "travis/$(VERSION)"
-	# sed -i -e "s/cndjp\/qicoo-api:v[0-9]*.[0-9]*.[0-9]*/cndjp\/qicoo-api:$(VERSION)/g" ./overlays/staging/qicoo-api-patch.yaml
 	sed -i -e "s/image: cndjp\/qicoo-api:CURRENT/image: cndjp\/qicoo-api:$(VERSION)/g" ./overlays/staging/qicoo-api-patch.yaml
 	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub add .
 	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub commit -m "Update the image: cndjp\/qicoo-api:$(VERSION)"
