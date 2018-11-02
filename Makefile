@@ -169,6 +169,7 @@ docker-push:
 
 .PHONY: github-setup
 github-setup:
+	set +x
 	mkdir -p "$(HOME)/.config"
 	echo "https://$(GITHUB_TOKEN):@github.com" > "$(HOME)/.config/git-credential"
 	echo "github.com:" > "$(HOME)/.config/hub"
@@ -182,6 +183,7 @@ github-setup:
 	curl -LO "https://github.com/github/hub/releases/download/v$(HUB_VERSION)/hub-linux-amd64-$(HUB_VERSION).tgz"
 	tar -C "$(HOME)" -zxf "hub-linux-amd64-$(HUB_VERSION).tgz"
 	export PATH=$(PATH):$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin
+	set -x
 
 .PHONY: github-pr
 github-pr: github-setup
