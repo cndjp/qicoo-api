@@ -190,9 +190,9 @@ github-pr: github-setup
 		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub checkout -b "travis/$(VERSION)" && \
 		@if test "$(TRAVIS_BRANCH)" = "master" ;\
 			then \
-			sed -i -e "s/image: cndjp\/qicoo-api:CURRENT/image: cndjp\/qicoo-api:$(VERSION)/g" ./overlays/production/qicoo-api-patch.yaml \
+			sed -i -e "s/image: cndjp\/qicoo-api:CURRENT/image: cndjp\/qicoo-api:$(VERSION)/g" ./overlays/production/qicoo-api-patch.yaml; \
 		else \
-			sed -i -e "s/image: cndjp\/qicoo-api:CURRENT/image: cndjp\/qicoo-api:$(VERSION)/g" ./overlays/staging/qicoo-api-patch.yaml \
+			sed -i -e "s/image: cndjp\/qicoo-api:CURRENT/image: cndjp\/qicoo-api:$(VERSION)/g" ./overlays/staging/qicoo-api-patch.yaml; \
 		fi && \
 		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub add . && \
 		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub commit -m "Update the image: cndjp/qicoo-api:$(VERSION)" && \
