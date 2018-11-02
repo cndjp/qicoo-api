@@ -185,7 +185,7 @@ github-setup:
 .PHONY: github-pr
 github-pr: github-setup
 	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub clone "https://github.com/cndjp/qicoo-api-manifests.git" qicoo-api-manifests
-	pushd qicoo-api-manifests
+	cd qicoo-api-manifests
 	pwd
 	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub checkout -b "travis/$(VERSION)"
 	pwd
@@ -194,7 +194,7 @@ github-pr: github-setup
 	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub commit -m "Update the image: cndjp\/qicoo-api:$(VERSION)"
 	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub push --set-upstream origin "travis/$(VERSION)"
 	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub pull-request -m "Update the image: cndjp\/qicoo-api:$(VERSION)"
-	popd
+	cd ..
 
 .PHONY: cross-build
 cross-build: deps
