@@ -187,7 +187,7 @@ github-setup:
 
 .PHONY: github-pr
 github-pr: github-setup
-	hub clone "https://github.com/cndjp/qicoo-api-manifests.git" _
+	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub clone "https://github.com/cndjp/qicoo-api-manifests.git" _
 
 .PHONY: cross-build
 cross-build: deps
