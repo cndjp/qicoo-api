@@ -169,6 +169,7 @@ docker-push:
 
 .PHONY: github-setup
 github-setup:
+	echo "TRAVIS_BRANCH: $(TRAVIS_BRANCH)"
 	mkdir -p "$(HOME)/.config"
 	echo "https://$(GITHUB_TOKEN):@github.com" > "$(HOME)/.config/git-credential"
 	echo "github.com:" > "$(HOME)/.config/hub"
