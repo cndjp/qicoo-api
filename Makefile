@@ -187,18 +187,19 @@ github-setup:
 github-pr: github-setup
 	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub clone "https://github.com/cndjp/qicoo-api-manifests.git" $(HOME)/qicoo-api-manifests
 	cd $(HOME)/qicoo-api-manifests && \
-		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub checkout -b "travis/$(VERSION)" && \
+		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub checkout -b "travis/$(VERSION)"
+	cd $(HOME)/qicoo-api-manifests && \
 		@if test "$(TRAVIS_BRANCH)" = "master"; \
 			then \
 			sed -i -e "s/image: cndjp\/qicoo-api:CURRENT/image: cndjp\/qicoo-api:$(VERSION)/g" ./overlays/production/qicoo-api-patch.yaml; \
 		else \
 			sed -i -e "s/image: cndjp\/qicoo-api:CURRENT/image: cndjp\/qicoo-api:$(VERSION)/g" ./overlays/staging/qicoo-api-patch.yaml; \
 		fi \
+	cd $(HOME)/qicoo-api-manifests && \
 		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub add . && \
 		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub commit -m "Update the image: cndjp/qicoo-api:$(VERSION)" && \
 		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub push --set-upstream origin "travis/$(VERSION)" && \
-		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub pull-request -m "Update the image: cndjp/qicoo-api:$(VERSION)" && \
-		cd ..
+		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub pull-request -m "Update the image: cndjp/qicoo-api:$(VERSION)" \
 
 .PHONY: cross-build
 cross-build: deps
