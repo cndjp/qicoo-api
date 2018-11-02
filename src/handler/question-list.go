@@ -42,6 +42,8 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 		Order:   vars["order"],
 	}
 
+	sugar.Infof("Request QuestionList process. EventID:%s, Start:%d, End:%d, Sort:%s, Order:%s", v.EventID, v.Start, v.End, v.Sort, v.Order)
+
 	var rci RedisConnectionInterface
 	rci = new(RedisManager)
 
@@ -74,6 +76,7 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte(out.String()))
+	sugar.Infof("Response QuestionList process. QuestionList:%s", jsonBytes)
 
 }
 
@@ -167,7 +170,7 @@ func GetQuestionList(conn redis.Conn, v QuestionListMuxVars, rks RedisKeys) (que
 
 	// API実行時に指定されたSortをRedisで実行
 	uuidSlice, err := redis.Strings(conn.Do(selectRedisCommand(v.Order), selectRedisSortedKey(v.Sort, rks), v.Start-1, v.End-1))
-	println("GetQuestionList:", selectRedisCommand(v.Order), selectRedisSortedKey(v.Sort, rks), v.Start-1, v.End-1)
+	sugar.Infof("Redis Command of GetQuestionList. command='%s %s %d %d'", selectRedisCommand(v.Order), selectRedisSortedKey(v.Sort, rks), v.Start-1, v.End-1)
 	if err != nil {
 		sugar.Error(err)
 		return getZeroQuestionList(), err
