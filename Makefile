@@ -193,7 +193,7 @@ github-pr: github-setup
 		sed -i -e "s/image: cndjp\/qicoo-api:CURRENT/image: cndjp\/qicoo-api:$(VERSION)/g" $(HOME)/qicoo-api-manifests/overlays/production/qicoo-api-patch.yaml; \
 	else \
 		sed -i -e "s/image: cndjp\/qicoo-api:CURRENT/image: cndjp\/qicoo-api:$(VERSION)/g" $(HOME)/qicoo-api-manifests/overlays/staging/qicoo-api-patch.yaml; \
-	fi \
+	fi
 	cd $(HOME)/qicoo-api-manifests && \
 		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub add . && \
 		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub commit -m "Update the image: cndjp/qicoo-api:$(VERSION)" && \
