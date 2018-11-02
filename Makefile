@@ -189,6 +189,7 @@ github-pr: github-setup
 	cd $(HOME)/qicoo-api-manifests && \
 		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub checkout -b "travis/$(VERSION)" && \
 		@if test "$(TRAVIS_BRANCH)" = "master" ;\
+			then \
 			sed -i -e "s/image: cndjp\/qicoo-api:CURRENT/image: cndjp\/qicoo-api:$(VERSION)/g" ./overlays/production/qicoo-api-patch.yaml \
 		else \
 			sed -i -e "s/image: cndjp\/qicoo-api:CURRENT/image: cndjp\/qicoo-api:$(VERSION)/g" ./overlays/staging/qicoo-api-patch.yaml \
