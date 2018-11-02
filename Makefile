@@ -8,7 +8,7 @@ endif
 
 GO15VENDOREXPERIMENT = 1
 OSXCROSS_NO_INCLUDE_PATH_WARNINGS = 1
-VERSION = v0.0.2-dev
+VERSION = v0.0.1
 
 NAME	 := qicoo-api
 TARGET	 := bin/$(NAME)
@@ -175,7 +175,7 @@ github-setup:
 	echo "github.com:" > "$(HOME)/.config/hub"
 	echo "- oauth_token: $(GITHUB_TOKEN)" >> "$(HOME)/.config/hub"
 	echo "  user: $(GITHUB_USER)" >> "$(HOME)/.config/hub"
-	git config --global user.name  "$(GITHUB_USER)"
+	git config --global user.name "$(GITHUB_USER)"
 	git config --global user.email "$(GITHUB_USER)@users.noreply.github.com"
 	git config --global core.autocrlf "input"
 	git config --global hub.protocol "https"
@@ -190,9 +190,9 @@ github-update-manifest: github-setup
 		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub checkout -b "travis/$(VERSION)"
 	@if test "$(TRAVIS_BRANCH)" = "master"; \
 		then \
-		sed -i -e "s/image: cndjp\/qicoo-api:CURRENT/image: cndjp\/qicoo-api:$(VERSION)/g" $(HOME)/qicoo-api-manifests/overlays/production/qicoo-api-patch.yaml; \
+		sed -i -e "s/image: cndjp\/qicoo-api:v[0-9]*.[0-9]*.[0-9]*/image: cndjp\/qicoo-api:$(VERSION)/g" $(HOME)/qicoo-api-manifests/overlays/production/qicoo-api-patch.yaml; \
 	else \
-		sed -i -e "s/image: cndjp\/qicoo-api:CURRENT/image: cndjp\/qicoo-api:$(VERSION)/g" $(HOME)/qicoo-api-manifests/overlays/staging/qicoo-api-patch.yaml; \
+		sed -i -e "s/image: cndjp\/qicoo-api:v[0-9]*.[0-9]*.[0-9]*/image: cndjp\/qicoo-api:$(VERSION)/g" $(HOME)/qicoo-api-manifests/overlays/staging/qicoo-api-patch.yaml; \
 	fi
 	cd $(HOME)/qicoo-api-manifests && \
 		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub add . && \
