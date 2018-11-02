@@ -181,7 +181,7 @@ github-setup:
 	git config --global hub.protocol "https"
 	git config --global credential.helper "store --file=$(HOME)/.config/git-credential"
 	curl -LO "https://github.com/github/hub/releases/download/v$(HUB_VERSION)/hub-linux-amd64-$(HUB_VERSION).tgz"
-	tar -C "$(HOME)" -zxf "hub-linux-amd64-$(HUB_VERSION).tgz"
+	tar -C "$(HOME)" -zxtf "hub-linux-amd64-$(HUB_VERSION).tgz"
 	export PATH=$(PATH):$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin
 	set -x
 
