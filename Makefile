@@ -184,8 +184,9 @@ github-setup:
 
 .PHONY: github-pr
 github-pr: github-setup
-	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub clone "https://github.com/cndjp/qicoo-api-manifests.git" qicoo-api-manifests
-	cd qicoo-api-manifests
+	pwd
+	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub clone "https://github.com/cndjp/qicoo-api-manifests.git" _
+	cd _
 	pwd
 	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub checkout -b "travis/$(VERSION)"
 	pwd
