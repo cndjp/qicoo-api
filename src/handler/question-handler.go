@@ -7,11 +7,11 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/cndjp/qicoo-api/src/loglib"
 	"github.com/cndjp/qicoo-api/src/mysqlib"
 	"github.com/cndjp/qicoo-api/src/pool"
 	"github.com/go-gorp/gorp"
 	"github.com/gomodule/redigo/redis"
-	"github.com/sirupsen/logrus"
 )
 
 // QuestionList Questionを複数格納するstruck
@@ -89,7 +89,7 @@ func (rm *RedisManager) GetRedisConnection() (conn redis.Conn) {
 func GetRedisKeys(eventID string) RedisKeys {
 	var k RedisKeys
 	k.QuestionKey = "questions_" + eventID
-	k.LikeSortedKey = k.QuestionKey + "_like"
+	k.LikeSortedKey = k.LikeSortedKey + "_like"
 	k.CreatedSortedKey = k.QuestionKey + "_created"
 
 	return k
@@ -97,9 +97,13 @@ func GetRedisKeys(eventID string) RedisKeys {
 
 // redisHasKey
 func redisHasKey(conn redis.Conn, key string) (hasKey bool, err error) {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
+	sugar.Infof("Redis Command of redisHasKey. command='EXISTS %s'", key)
 	ok, err := redis.Bool(conn.Do("EXISTS", key))
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return false, err
 	}
 
@@ -112,10 +116,13 @@ type MySQLManager struct {
 
 // GetMySQLdbmap DBのdbmapを取得
 func (mm *MySQLManager) GetMySQLdbmap() *gorp.DbMap {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
 	dbmap, err := mysqlib.InitMySQL()
 
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return nil
 	}
 
@@ -128,6 +135,9 @@ func (mm *MySQLManager) GetMySQLdbmap() *gorp.DbMap {
 // Time.Now()で生成した時刻をMySQLに挿入すると、四捨五入される
 // MySQLに挿入する前に時刻を確定したいため、この関数で生成する時刻を使用する
 func TimeNowRoundDown() time.Time {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
 	format := "2006-01-02 15:04:05"
 
 	var now time.Time
@@ -140,12 +150,12 @@ func TimeNowRoundDown() time.Time {
 	// tine.Timeを生成
 	loc, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 	}
 
 	nowRound, err := time.ParseInLocation(format, nowRoundString, loc)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 	}
 
 	return nowRound
@@ -153,11 +163,14 @@ func TimeNowRoundDown() time.Time {
 
 // getQuestion RedisからQuestionを取得する
 func getQuestion(conn redis.Conn, dbmap *gorp.DbMap, eventID string, questionID string, rks RedisKeys) (Question, error) {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
 	var q Question
 
 	yes, err := checkRedisKey(conn, rks)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return q, err
 	}
 
@@ -165,23 +178,23 @@ func getQuestion(conn redis.Conn, dbmap *gorp.DbMap, eventID string, questionID 
 		_, err := syncQuestion(conn, dbmap, eventID, rks)
 		// 同期にエラー
 		if err != nil {
-			logrus.Error(err)
+			sugar.Error(err)
 			return q, err
 		}
 	}
 
 	//HashからQuesitonのデータを取得する
 	bytesSlice, err := redis.ByteSlices(conn.Do("HMGET", rks.QuestionKey, questionID))
-	println("QuestionLikeRedis:", "HMGET", rks.QuestionKey, questionID)
+	sugar.Infof("Redis Command of getQuestion. command='HMGET %s %s'", rks.QuestionKey, questionID)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return q, err
 	}
 
 	for _, bytes := range bytesSlice {
 		err = json.Unmarshal(bytes, &q)
 		if err != nil {
-			logrus.Error(err)
+			sugar.Error(err)
 			return q, err
 		}
 	}
