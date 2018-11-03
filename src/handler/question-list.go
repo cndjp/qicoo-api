@@ -7,13 +7,16 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cndjp/qicoo-api/src/loglib"
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
 )
 
 // QuestionListHandler QuestionオブジェクトをRedisから取得する。存在しない場合はDBから取得し、Redisへ格納する
 func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
 	// Headerの設定
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -22,12 +25,12 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	start, err := strconv.Atoi(vars["start"])
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return
 	}
 	end, err := strconv.Atoi(vars["end"])
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return
 	}
 
@@ -39,6 +42,8 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 		Order:   vars["order"],
 	}
 
+	sugar.Infof("Request QuestionList process. EventID:%s, Start:%d, End:%d, Sort:%s, Order:%s", v.EventID, v.Start, v.End, v.Sort, v.Order)
+
 	var rci RedisConnectionInterface
 	rci = new(RedisManager)
 
@@ -49,7 +54,7 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 	var questionList QuestionList
 	questionList, err = QuestionListFunc(rci, dmi, v)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return
 	}
 
@@ -57,7 +62,7 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 	// QuestionのStructをjsonとして変換
 	jsonBytes, err := json.Marshal(questionList)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return
 	}
 
@@ -66,16 +71,18 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 	// プリフィックスなし、スペース2つでインデント
 	err = json.Indent(out, jsonBytes, "", "  ")
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return
 	}
 
 	w.Write([]byte(out.String()))
+	sugar.Infof("Response QuestionList process. QuestionList:%s", jsonBytes)
 
 }
 
 // QuestionListFunc テストコードでテストしやすいように定義
 func QuestionListFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v QuestionListMuxVars) (questionList QuestionList, err error) {
+
 	// RedisのConnection生成
 	redisConn := rci.GetRedisConnection()
 	defer redisConn.Close()
@@ -88,7 +95,6 @@ func QuestionListFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v Q
 	/* Redisにデータが存在するか確認する。 */
 	yes, err := checkRedisKey(redisConn, rks)
 	if err != nil {
-		logrus.Error(err)
 		return getZeroQuestionList(), err
 	}
 
@@ -99,7 +105,6 @@ func QuestionListFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v Q
 
 		// 同期にエラー
 		if err != nil {
-			logrus.Error(err)
 			return getZeroQuestionList(), err
 		}
 
@@ -111,7 +116,6 @@ func QuestionListFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v Q
 
 	questionList, err = GetQuestionList(redisConn, v, rks)
 	if err != nil {
-		logrus.Error(err)
 		return questionList, err
 	}
 
@@ -156,11 +160,14 @@ func selectRedisSortedKey(sort string, rks RedisKeys) (sortedkey string) {
 
 // GetQuestionList RedisとDBからデータを取得する
 func GetQuestionList(conn redis.Conn, v QuestionListMuxVars, rks RedisKeys) (questionList QuestionList, err error) {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
 	// API実行時に指定されたSortをRedisで実行
 	uuidSlice, err := redis.Strings(conn.Do(selectRedisCommand(v.Order), selectRedisSortedKey(v.Sort, rks), v.Start-1, v.End-1))
-	println("GetQuestionList:", selectRedisCommand(v.Order), selectRedisSortedKey(v.Sort, rks), v.Start-1, v.End-1)
+	sugar.Infof("Redis Command of GetQuestionList. command='%s %s %d %d'", selectRedisCommand(v.Order), selectRedisSortedKey(v.Sort, rks), v.Start-1, v.End-1)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return getZeroQuestionList(), err
 	}
 
@@ -174,7 +181,6 @@ func GetQuestionList(conn redis.Conn, v QuestionListMuxVars, rks RedisKeys) (que
 
 	bytesSlice, err := redis.ByteSlices(conn.Do("HMGET", list...))
 	if err != nil {
-		logrus.Error(err)
 		return getZeroQuestionList(), err
 	}
 
@@ -183,7 +189,6 @@ func GetQuestionList(conn redis.Conn, v QuestionListMuxVars, rks RedisKeys) (que
 		q := new(Question)
 		err = json.Unmarshal(bytes, q)
 		if err != nil {
-			logrus.Error(err)
 			return getZeroQuestionList(), err
 		}
 
@@ -193,7 +198,7 @@ func GetQuestionList(conn redis.Conn, v QuestionListMuxVars, rks RedisKeys) (que
 	// DB or Redis から取得したデータのtimezoneをAsia/Tokyoと指定
 	locationTokyo, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
-		logrus.Fatal(err)
+		sugar.Fatal(err)
 		return getZeroQuestionList(), err
 	}
 

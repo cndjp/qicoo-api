@@ -4,31 +4,34 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/cndjp/qicoo-api/src/loglib"
 	"github.com/go-gorp/gorp"
 	"github.com/gomodule/redigo/redis"
-	"github.com/sirupsen/logrus"
 )
 
 var redisExpireSeconds = 10800
 
 // これ並列化できる（チャンネル込みで）
 func checkRedisKey(conn redis.Conn, rks RedisKeys) (bool, error) {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
 	// 3種類のKeyが存在しない場合はデータが何かしら不足しているため、データの同期を行う
 	hasQuestion, err := redisHasKey(conn, rks.QuestionKey)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return false, err
 	}
 
-	hasLikeSorted, err := redisHasKey(conn, rks.QuestionKey)
+	hasLikeSorted, err := redisHasKey(conn, rks.LikeSortedKey)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return false, err
 	}
 
-	hasCreatedSorted, err := redisHasKey(conn, rks.QuestionKey)
+	hasCreatedSorted, err := redisHasKey(conn, rks.CreatedSortedKey)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return false, err
 	}
 
@@ -43,9 +46,15 @@ func checkRedisKey(conn redis.Conn, rks RedisKeys) (bool, error) {
 // return: 同期した件数(errorの場合,データが存在しない場合は0)、error
 func syncQuestion(conn redis.Conn, m *gorp.DbMap, eventID string, rks RedisKeys) (int, error) {
 	var questions []Question
+
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
+	sugar.Infof("SQL of syncQuesiton. SQL='SELECT * FROM questions WHERE event_id = %s'", eventID)
+
 	_, err := m.Select(&questions, "SELECT * FROM questions WHERE event_id = '"+eventID+"'")
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return 0, err
 	}
 
@@ -57,7 +66,7 @@ func syncQuestion(conn redis.Conn, m *gorp.DbMap, eventID string, rks RedisKeys)
 	// DB or Redis から取得したデータのtimezoneをUTCからAsia/Tokyoと指定
 	locationTokyo, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return 0, err
 	}
 
@@ -71,41 +80,44 @@ func syncQuestion(conn redis.Conn, m *gorp.DbMap, eventID string, rks RedisKeys)
 		//HashMap SerializedされたJSONデータを格納
 		serializedJSON, err := json.Marshal(question)
 		if err != nil {
-			logrus.Error(err)
+			sugar.Error(err)
 			return 0, err
 		}
 
+		sugar.Infof("Redis Command of syncQuestion. command='HSET %s %s %s'", rks.QuestionKey, question.ID, serializedJSON)
 		if _, err := conn.Do("HSET", rks.QuestionKey, question.ID, serializedJSON); err != nil {
-			logrus.Error(err)
+			sugar.Error(err)
 			return 0, err
 		}
 
 		//SortedSet(Like)
+		sugar.Infof("Redis Command of syncQuestion. command='ZADD %s %d %s'", rks.LikeSortedKey, question.Like, question.ID)
 		if _, err := conn.Do("ZADD", rks.LikeSortedKey, question.Like, question.ID); err != nil {
-			logrus.Error(err)
+			sugar.Error(err)
 			return 0, err
 		}
 
 		//SortedSet(CreatedAt)
+		sugar.Infof("Redis Command of syncQuestion. command='ZADD %s %d %s'", rks.CreatedSortedKey, question.CreatedAt.Unix(), question.ID)
 		if _, err := conn.Do("ZADD", rks.CreatedSortedKey, question.CreatedAt.Unix(), question.ID); err != nil {
-			logrus.Error(err)
+			sugar.Error(err)
 			return 0, err
 		}
 	}
 
 	// Redisに有効期限(3時間)を設定する
 	if _, err := conn.Do("EXPIRE", rks.QuestionKey, redisExpireSeconds); err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return 0, err
 	}
 
 	if _, err := conn.Do("EXPIRE", rks.LikeSortedKey, redisExpireSeconds); err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return 0, err
 	}
 
 	if _, err := conn.Do("EXPIRE", rks.CreatedSortedKey, redisExpireSeconds); err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return 0, err
 	}
 
