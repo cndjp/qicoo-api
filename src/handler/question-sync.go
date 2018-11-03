@@ -50,7 +50,7 @@ func syncQuestion(conn redis.Conn, m *gorp.DbMap, eventID string, rks RedisKeys)
 	sugar := loglib.GetSugar()
 	defer sugar.Sync()
 
-	sugar.Infof("SQL of syncQuesiton. SQL='SELECT * FROM questions WHERE event_id = %s", eventID)
+	sugar.Infof("SQL of syncQuesiton. SQL='SELECT * FROM questions WHERE event_id = %s'", eventID)
 
 	_, err := m.Select(&questions, "SELECT * FROM questions WHERE event_id = '"+eventID+"'")
 	if err != nil {
