@@ -124,7 +124,7 @@ func QuestionDeleteDB(dbmap *gorp.DbMap, q *Question) error {
 	defer sugar.Sync()
 
 	// Tracelogの設定
-	dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
+	dbmap.TraceOn("", log.New(os.Stdout, "gorptrace: ", log.Lmicroseconds))
 
 	// delete実行
 	count, err := dbmap.Delete(q)
@@ -175,21 +175,21 @@ func QuestionDeleteRedis(rci RedisConnectionInterface, dmi MySQLDbmapInterface, 
 	}
 
 	//HashMap
-	println("DeleteQuestion:", "HDEL", rks.QuestionKey, question.ID)
+	sugar.Infof("Redis Command of DeleteQuestion. command='HDEL %s %s'", rks.QuestionKey, question.ID)
 	if _, err := redisConn.Do("HDEL", rks.QuestionKey, question.ID); err != nil {
 		sugar.Error(err)
 		return err
 	}
 
 	//SortedSet Created_at
-	println("DeleteQuestion:", "ZREM", rks.CreatedSortedKey, question.ID)
+	sugar.Infof("Redis Command of DeleteQuestion. command='ZREM %s %s'", rks.CreatedSortedKey, question.ID)
 	if _, err := redisConn.Do("ZREM", rks.CreatedSortedKey, question.ID); err != nil {
 		sugar.Error(err)
 		return err
 	}
 
 	//SortedSet like
-	println("DeleteQuestion:", "ZREM", rks.LikeSortedKey, question.ID)
+	sugar.Infof("Redis Command of DeleteQuestion. command='ZREM %s %s'", rks.LikeSortedKey, question.ID)
 	if _, err := redisConn.Do("ZREM", rks.LikeSortedKey, question.ID); err != nil {
 		sugar.Error(err)
 		return err
