@@ -103,7 +103,6 @@ func redisHasKey(conn redis.Conn, key string) (hasKey bool, err error) {
 	sugar.Infof("Redis Command of redisHasKey. command='EXISTS %s'", key)
 	ok, err := redis.Bool(conn.Do("EXISTS", key))
 	if err != nil {
-		sugar.Error(err)
 		return false, err
 	}
 
@@ -131,7 +130,7 @@ func (mm *MySQLManager) GetMySQLdbmap() *gorp.DbMap {
 }
 
 // TimeNowRoundDown 時刻を取得する。小数点以下は切り捨てる
-// RedisとMyySQLでの時刻扱いに微妙に仕様の差異があるための対応
+// RedisとMySQLでの時刻扱いに微妙に仕様の差異があるための対応
 // Time.Now()で生成した時刻をMySQLに挿入すると、四捨五入される
 // MySQLに挿入する前に時刻を確定したいため、この関数で生成する時刻を使用する
 func TimeNowRoundDown() time.Time {
@@ -147,7 +146,7 @@ func TimeNowRoundDown() time.Time {
 	var nowRoundString string
 	nowRoundString = now.Format(format)
 
-	// tine.Timeを生成
+	// time.Timeを生成
 	loc, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
 		sugar.Error(err)
@@ -163,14 +162,11 @@ func TimeNowRoundDown() time.Time {
 
 // getQuestion RedisからQuestionを取得する
 func getQuestion(conn redis.Conn, dbmap *gorp.DbMap, eventID string, questionID string, rks RedisKeys) (Question, error) {
-	sugar := loglib.GetSugar()
-	defer sugar.Sync()
 
 	var q Question
 
 	yes, err := checkRedisKey(conn, rks)
 	if err != nil {
-		sugar.Error(err)
 		return q, err
 	}
 
@@ -178,23 +174,22 @@ func getQuestion(conn redis.Conn, dbmap *gorp.DbMap, eventID string, questionID 
 		_, err := syncQuestion(conn, dbmap, eventID, rks)
 		// 同期にエラー
 		if err != nil {
-			sugar.Error(err)
 			return q, err
 		}
 	}
 
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
 	//HashからQuesitonのデータを取得する
 	bytesSlice, err := redis.ByteSlices(conn.Do("HMGET", rks.QuestionKey, questionID))
 	sugar.Infof("Redis Command of getQuestion. command='HMGET %s %s'", rks.QuestionKey, questionID)
 	if err != nil {
-		sugar.Error(err)
 		return q, err
 	}
 
 	for _, bytes := range bytesSlice {
 		err = json.Unmarshal(bytes, &q)
 		if err != nil {
-			sugar.Error(err)
 			return q, err
 		}
 	}

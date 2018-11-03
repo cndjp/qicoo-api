@@ -36,11 +36,15 @@ func TestCreateQuestion(t *testing.T) {
 	dmi = new(mockMySQLManager)
 
 	// testQuestionを実際に格納
-	handler.QuestionCreateFunc(rci, dmi, mockQCMuxVars, testQuestion)
+	err := handler.QuestionCreateFunc(rci, dmi, mockQCMuxVars, testQuestion)
+	if err != nil {
+		logrus.Error(err)
+		t.Errorf("error in saving question :%v", err)
+	}
 
 	// QuestionListを取得し、testQuestionが含まれているか確認
 	var questionList handler.QuestionList
-	questionList, err := handler.QuestionListFunc(rci, dmi, mockQLMuxVars)
+	questionList, err = handler.QuestionListFunc(rci, dmi, mockQLMuxVars)
 
 	if err != nil {
 		logrus.Error(err)

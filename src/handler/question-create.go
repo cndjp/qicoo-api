@@ -87,8 +87,6 @@ func QuestionCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 // QuestionCreateFunc テストコードでテストしやすいように定義
 func QuestionCreateFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v QuestionCreateMuxVars, question Question) error {
-	sugar := loglib.GetSugar()
-	defer sugar.Sync()
 
 	var dbmap *gorp.DbMap
 	dbmap = dmi.GetMySQLdbmap()
@@ -97,27 +95,23 @@ func QuestionCreateFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v
 	// gorpのトランザクション処理。DBとRedisの両方とも書き込みが出来た場合に、commitする
 	trans, err := dbmap.Begin()
 	if err != nil {
-		sugar.Error(err)
 		return err
 	}
 
 	err = QuestionCreateDB(dbmap, question)
 	if err != nil {
-		sugar.Error(err)
 		trans.Rollback()
 		return err
 	}
 
 	err = QuestionCreateRedis(rci, dmi, v, question)
 	if err != nil {
-		sugar.Error(err)
 		trans.Rollback()
 		return err
 	}
 
 	err = trans.Commit()
 	if err != nil {
-		sugar.Error(err)
 		trans.Rollback()
 		return err
 	}
@@ -127,21 +121,12 @@ func QuestionCreateFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v
 
 // QuestionCreateDB DBに質問データの挿入
 func QuestionCreateDB(dbmap *gorp.DbMap, question Question) error {
-	sugar := loglib.GetSugar()
-	defer sugar.Sync()
 
 	// debug SQL Trace
 	dbmap.TraceOn("", log.New(os.Stdout, "gorptrace: ", log.LstdFlags))
 
 	/* データの挿入 */
-	err := dbmap.Insert(&question)
-
-	if err != nil {
-		sugar.Error(err)
-		return err
-	}
-
-	return nil
+	return dbmap.Insert(&question)
 }
 
 // SetQuestion QuestionをRedisに格納
@@ -156,7 +141,6 @@ func SetQuestion(redisConn redis.Conn, dmi MySQLDbmapInterface, v QuestionCreate
 	/* Redisにデータが存在するか確認する。 */
 	yes, err := checkRedisKey(redisConn, rks)
 	if err != nil {
-		sugar.Error(err)
 		return err
 	}
 
@@ -166,7 +150,6 @@ func SetQuestion(redisConn redis.Conn, dmi MySQLDbmapInterface, v QuestionCreate
 		_, err := syncQuestion(redisConn, dbmap, v.EventID, rks)
 		// 同期にエラー
 		if err != nil {
-			sugar.Error(err)
 			return err
 		}
 	}
@@ -174,27 +157,23 @@ func SetQuestion(redisConn redis.Conn, dmi MySQLDbmapInterface, v QuestionCreate
 	//HashMap SerializedされたJSONデータを格納
 	serializedJSON, err := json.Marshal(question)
 	if err != nil {
-		sugar.Error(err)
 		return err
 	}
 
 	sugar.Infof("Redis Command of SetQuestion. command='HSET %s %s %s'", rks.QuestionKey, question.ID, serializedJSON)
 	if _, err := redisConn.Do("HSET", rks.QuestionKey, question.ID, serializedJSON); err != nil {
-		sugar.Error(err)
 		return err
 	}
 
 	//SortedSet(Like)
 	sugar.Infof("Redis Command of SetQuestion. command='ZADD %s %d %s'", rks.LikeSortedKey, question.Like, question.ID)
 	if _, err := redisConn.Do("ZADD", rks.LikeSortedKey, question.Like, question.ID); err != nil {
-		sugar.Error(err)
 		return err
 	}
 
 	//SortedSet(CreatedAt)
 	sugar.Infof("Redis Command of SetQuestion. command='ZADD %s %d %s'", rks.CreatedSortedKey, question.CreatedAt.Unix(), question.ID)
 	if _, err := redisConn.Do("ZADD", rks.CreatedSortedKey, question.CreatedAt.Unix(), question.ID); err != nil {
-		sugar.Error(err)
 		return err
 	}
 
@@ -203,19 +182,10 @@ func SetQuestion(redisConn redis.Conn, dmi MySQLDbmapInterface, v QuestionCreate
 
 // QuestionCreateRedis Redisに質問データの挿入
 func QuestionCreateRedis(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v QuestionCreateMuxVars, question Question) error {
-	sugar := loglib.GetSugar()
-	defer sugar.Sync()
 
 	// RedisのConnection生成
 	redisConn := rci.GetRedisConnection()
 	defer redisConn.Close()
 
-	err := SetQuestion(redisConn, dmi, v, question)
-
-	if err != nil {
-		sugar.Error(err)
-		return err
-	}
-
-	return nil
+	return SetQuestion(redisConn, dmi, v, question)
 }

@@ -82,8 +82,6 @@ func QuestionListHandler(w http.ResponseWriter, r *http.Request) {
 
 // QuestionListFunc テストコードでテストしやすいように定義
 func QuestionListFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v QuestionListMuxVars) (questionList QuestionList, err error) {
-	sugar := loglib.GetSugar()
-	defer sugar.Sync()
 
 	// RedisのConnection生成
 	redisConn := rci.GetRedisConnection()
@@ -97,7 +95,6 @@ func QuestionListFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v Q
 	/* Redisにデータが存在するか確認する。 */
 	yes, err := checkRedisKey(redisConn, rks)
 	if err != nil {
-		sugar.Error(err)
 		return getZeroQuestionList(), err
 	}
 
@@ -108,7 +105,6 @@ func QuestionListFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v Q
 
 		// 同期にエラー
 		if err != nil {
-			sugar.Error(err)
 			return getZeroQuestionList(), err
 		}
 
@@ -120,7 +116,6 @@ func QuestionListFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v Q
 
 	questionList, err = GetQuestionList(redisConn, v, rks)
 	if err != nil {
-		sugar.Error(err)
 		return questionList, err
 	}
 
@@ -186,7 +181,6 @@ func GetQuestionList(conn redis.Conn, v QuestionListMuxVars, rks RedisKeys) (que
 
 	bytesSlice, err := redis.ByteSlices(conn.Do("HMGET", list...))
 	if err != nil {
-		sugar.Error(err)
 		return getZeroQuestionList(), err
 	}
 
@@ -195,7 +189,6 @@ func GetQuestionList(conn redis.Conn, v QuestionListMuxVars, rks RedisKeys) (que
 		q := new(Question)
 		err = json.Unmarshal(bytes, q)
 		if err != nil {
-			sugar.Error(err)
 			return getZeroQuestionList(), err
 		}
 

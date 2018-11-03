@@ -3,7 +3,7 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -85,8 +85,6 @@ func QuestionDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 // QuestionDeleteFunc テストコードでテストしやすいように定義
 func QuestionDeleteFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v QuestionDeleteMuxVars, q *Question) error {
-	sugar := loglib.GetSugar()
-	defer sugar.Sync()
 
 	var dbmap *gorp.DbMap
 	dbmap = dmi.GetMySQLdbmap()
@@ -95,14 +93,12 @@ func QuestionDeleteFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v
 	// gorpのトランザクション処理。DBとRedisの両方とも削除が出来た場合に、commitする
 	trans, err := dbmap.Begin()
 	if err != nil {
-		sugar.Error(err)
 		return err
 	}
 
 	// DBからQuestionを削除
 	err = QuestionDeleteDB(dbmap, q)
 	if err != nil {
-		sugar.Error(err)
 		trans.Rollback()
 		return err
 	}
@@ -110,7 +106,6 @@ func QuestionDeleteFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v
 	// RedisからQurstionを削除
 	err = QuestionDeleteRedis(rci, dmi, v, *q)
 	if err != nil {
-		sugar.Error(err)
 		return err
 	}
 
@@ -129,15 +124,11 @@ func QuestionDeleteDB(dbmap *gorp.DbMap, q *Question) error {
 	// delete実行
 	count, err := dbmap.Delete(q)
 	if err != nil {
-		sugar.Error(err)
 		return err
 	}
 
 	if count == 0 {
-		emsg := "not found delete Quesiton. Question ID :" + q.ID
-		err = errors.New(emsg)
-		sugar.Error(err)
-		return err
+		return fmt.Errorf("not found delete Quesiton. Question ID :%s", q.ID)
 	}
 
 	return nil
@@ -159,7 +150,6 @@ func QuestionDeleteRedis(rci RedisConnectionInterface, dmi MySQLDbmapInterface, 
 	/* Redisにデータが存在するか確認する。 */
 	yes, err := checkRedisKey(redisConn, rks)
 	if err != nil {
-		sugar.Error(err)
 		return err
 	}
 
@@ -169,7 +159,6 @@ func QuestionDeleteRedis(rci RedisConnectionInterface, dmi MySQLDbmapInterface, 
 		_, err := syncQuestion(redisConn, dbmap, v.EventID, rks)
 		// 同期にエラー
 		if err != nil {
-			sugar.Error(err)
 			return err
 		}
 	}
@@ -177,21 +166,18 @@ func QuestionDeleteRedis(rci RedisConnectionInterface, dmi MySQLDbmapInterface, 
 	//HashMap
 	sugar.Infof("Redis Command of DeleteQuestion. command='HDEL %s %s'", rks.QuestionKey, question.ID)
 	if _, err := redisConn.Do("HDEL", rks.QuestionKey, question.ID); err != nil {
-		sugar.Error(err)
 		return err
 	}
 
 	//SortedSet Created_at
 	sugar.Infof("Redis Command of DeleteQuestion. command='ZREM %s %s'", rks.CreatedSortedKey, question.ID)
 	if _, err := redisConn.Do("ZREM", rks.CreatedSortedKey, question.ID); err != nil {
-		sugar.Error(err)
 		return err
 	}
 
 	//SortedSet like
 	sugar.Infof("Redis Command of DeleteQuestion. command='ZREM %s %s'", rks.LikeSortedKey, question.ID)
 	if _, err := redisConn.Do("ZREM", rks.LikeSortedKey, question.ID); err != nil {
-		sugar.Error(err)
 		return err
 	}
 
