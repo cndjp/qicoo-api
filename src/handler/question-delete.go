@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/cndjp/qicoo-api/src/loglib"
 	"github.com/go-gorp/gorp"
 	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
 )
 
 // QuestionDeleteResponse Questionを削除成功した時にResponseするためのstruct
@@ -22,6 +22,9 @@ type QuestionDeleteResponse struct {
 
 // QuestionDeleteHandler Questionの削除用 関数
 func QuestionDeleteHandler(w http.ResponseWriter, r *http.Request) {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
 	// Headerの設定
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -39,6 +42,8 @@ func QuestionDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		EventID: vars["event_id"],
 	}
 
+	sugar.Infof("Request QuestionDelete process. EventID:%s, QuestionID:%s", v.EventID, q.ID)
+
 	var dmi MySQLDbmapInterface
 	dmi = new(MySQLManager)
 
@@ -47,7 +52,7 @@ func QuestionDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := QuestionDeleteFunc(rci, dmi, v, q)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return
 	}
 
@@ -60,7 +65,7 @@ func QuestionDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	// QuestionのStructをjsonとして変換
 	jsonBytes, err := json.Marshal(res)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return
 	}
 
@@ -69,15 +74,20 @@ func QuestionDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	// プリフィックスなし、スペース2つでインデント
 	err = json.Indent(out, jsonBytes, "", "  ")
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return
 	}
 
 	w.Write([]byte(out.String()))
+
+	sugar.Infof("Response QuestionDelete process. QuestionDelete:%s", jsonBytes)
 }
 
 // QuestionDeleteFunc テストコードでテストしやすいように定義
 func QuestionDeleteFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v QuestionDeleteMuxVars, q *Question) error {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
 	var dbmap *gorp.DbMap
 	dbmap = dmi.GetMySQLdbmap()
 	defer dbmap.Db.Close()
@@ -85,14 +95,14 @@ func QuestionDeleteFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v
 	// gorpのトランザクション処理。DBとRedisの両方とも削除が出来た場合に、commitする
 	trans, err := dbmap.Begin()
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return err
 	}
 
 	// DBからQuestionを削除
 	err = QuestionDeleteDB(dbmap, q)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		trans.Rollback()
 		return err
 	}
@@ -100,7 +110,7 @@ func QuestionDeleteFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v
 	// RedisからQurstionを削除
 	err = QuestionDeleteRedis(rci, dmi, v, *q)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return err
 	}
 
@@ -110,20 +120,23 @@ func QuestionDeleteFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v
 
 // QuestionDeleteDB DBからQuestionを削除する
 func QuestionDeleteDB(dbmap *gorp.DbMap, q *Question) error {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
 	// Tracelogの設定
 	dbmap.TraceOn("", log.New(os.Stdout, "gorptest: ", log.Lmicroseconds))
 
 	// delete実行
 	count, err := dbmap.Delete(q)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return err
 	}
 
 	if count == 0 {
 		emsg := "not found delete Quesiton. Question ID :" + q.ID
 		err = errors.New(emsg)
-		logrus.Error(err)
+		sugar.Error(err)
 		return err
 	}
 
@@ -132,6 +145,9 @@ func QuestionDeleteDB(dbmap *gorp.DbMap, q *Question) error {
 
 // QuestionDeleteRedis RedisからQuestionを削除するメソッド
 func QuestionDeleteRedis(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v QuestionDeleteMuxVars, question Question) error {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
 	// RedisのConnection生成
 	redisConn := rci.GetRedisConnection()
 	defer redisConn.Close()
@@ -143,7 +159,7 @@ func QuestionDeleteRedis(rci RedisConnectionInterface, dmi MySQLDbmapInterface, 
 	/* Redisにデータが存在するか確認する。 */
 	yes, err := checkRedisKey(redisConn, rks)
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return err
 	}
 
@@ -153,7 +169,7 @@ func QuestionDeleteRedis(rci RedisConnectionInterface, dmi MySQLDbmapInterface, 
 		_, err := syncQuestion(redisConn, dbmap, v.EventID, rks)
 		// 同期にエラー
 		if err != nil {
-			logrus.Error(err)
+			sugar.Error(err)
 			return err
 		}
 	}
@@ -161,21 +177,21 @@ func QuestionDeleteRedis(rci RedisConnectionInterface, dmi MySQLDbmapInterface, 
 	//HashMap
 	println("DeleteQuestion:", "HDEL", rks.QuestionKey, question.ID)
 	if _, err := redisConn.Do("HDEL", rks.QuestionKey, question.ID); err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return err
 	}
 
 	//SortedSet Created_at
 	println("DeleteQuestion:", "ZREM", rks.CreatedSortedKey, question.ID)
 	if _, err := redisConn.Do("ZREM", rks.CreatedSortedKey, question.ID); err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return err
 	}
 
 	//SortedSet like
 	println("DeleteQuestion:", "ZREM", rks.LikeSortedKey, question.ID)
 	if _, err := redisConn.Do("ZREM", rks.LikeSortedKey, question.ID); err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return err
 	}
 

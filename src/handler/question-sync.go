@@ -23,13 +23,13 @@ func checkRedisKey(conn redis.Conn, rks RedisKeys) (bool, error) {
 		return false, err
 	}
 
-	hasLikeSorted, err := redisHasKey(conn, rks.QuestionKey)
+	hasLikeSorted, err := redisHasKey(conn, rks.LikeSortedKey)
 	if err != nil {
 		sugar.Error(err)
 		return false, err
 	}
 
-	hasCreatedSorted, err := redisHasKey(conn, rks.QuestionKey)
+	hasCreatedSorted, err := redisHasKey(conn, rks.CreatedSortedKey)
 	if err != nil {
 		sugar.Error(err)
 		return false, err
@@ -91,14 +91,14 @@ func syncQuestion(conn redis.Conn, m *gorp.DbMap, eventID string, rks RedisKeys)
 		}
 
 		//SortedSet(Like)
-		sugar.Infof("Redis Command of syncQuestion. command='ZADD %s %s %s'", rks.LikeSortedKey, question.Like, question.ID)
+		sugar.Infof("Redis Command of syncQuestion. command='ZADD %s %d %s'", rks.LikeSortedKey, question.Like, question.ID)
 		if _, err := conn.Do("ZADD", rks.LikeSortedKey, question.Like, question.ID); err != nil {
 			sugar.Error(err)
 			return 0, err
 		}
 
 		//SortedSet(CreatedAt)
-		sugar.Infof("Redis Command of syncQuestion. command='ZADD %s %s %s'", rks.CreatedSortedKey, question.CreatedAt.Unix(), question.ID)
+		sugar.Infof("Redis Command of syncQuestion. command='ZADD %s %d %s'", rks.CreatedSortedKey, question.CreatedAt.Unix(), question.ID)
 		if _, err := conn.Do("ZADD", rks.CreatedSortedKey, question.CreatedAt.Unix(), question.ID); err != nil {
 			sugar.Error(err)
 			return 0, err

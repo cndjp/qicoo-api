@@ -89,7 +89,7 @@ func (rm *RedisManager) GetRedisConnection() (conn redis.Conn) {
 func GetRedisKeys(eventID string) RedisKeys {
 	var k RedisKeys
 	k.QuestionKey = "questions_" + eventID
-	k.LikeSortedKey = k.LikeSortedKey + "_like"
+	k.LikeSortedKey = k.QuestionKey + "_like"
 	k.CreatedSortedKey = k.QuestionKey + "_created"
 
 	return k

@@ -185,14 +185,14 @@ func SetQuestion(redisConn redis.Conn, dmi MySQLDbmapInterface, v QuestionCreate
 	}
 
 	//SortedSet(Like)
-	sugar.Infof("Redis Command of SetQuestion. command='ZADD %s %s %s'", rks.LikeSortedKey, question.Like, question.ID)
+	sugar.Infof("Redis Command of SetQuestion. command='ZADD %s %d %s'", rks.LikeSortedKey, question.Like, question.ID)
 	if _, err := redisConn.Do("ZADD", rks.LikeSortedKey, question.Like, question.ID); err != nil {
 		sugar.Error(err)
 		return err
 	}
 
 	//SortedSet(CreatedAt)
-	sugar.Infof("Redis Command of SetQuestion. command='ZADD %s %s %s'", rks.CreatedSortedKey, question.CreatedAt.Unix(), question.ID)
+	sugar.Infof("Redis Command of SetQuestion. command='ZADD %s %d %s'", rks.CreatedSortedKey, question.CreatedAt.Unix(), question.ID)
 	if _, err := redisConn.Do("ZADD", rks.CreatedSortedKey, question.CreatedAt.Unix(), question.ID); err != nil {
 		sugar.Error(err)
 		return err
