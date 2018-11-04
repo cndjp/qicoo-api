@@ -5,6 +5,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/cndjp/qicoo-api/src/loglib"
@@ -12,6 +13,22 @@ import (
 	"github.com/cndjp/qicoo-api/src/pool"
 	"github.com/go-gorp/gorp"
 	"github.com/gomodule/redigo/redis"
+)
+
+func init() {
+	var err error
+	localLocation, err = time.LoadLocation(localTimeZone)
+	if err != nil {
+		panic(fmt.Sprintf("Timezone: %s is not supported.", localTimeZone))
+	}
+}
+
+var (
+	localLocation *time.Location
+)
+
+const (
+	localTimeZone = "Asia/Tokyo"
 )
 
 // QuestionList Questionを複数格納するstruck
@@ -129,35 +146,17 @@ func (mm *MySQLManager) GetMySQLdbmap() *gorp.DbMap {
 	return dbmap
 }
 
-// TimeNowRoundDown 時刻を取得する。小数点以下は切り捨てる
+// TimeNowRoundDown 時刻を取得する。秒未満は切り捨てる
 // RedisとMySQLでの時刻扱いに微妙に仕様の差異があるための対応
 // Time.Now()で生成した時刻をMySQLに挿入すると、四捨五入される
 // MySQLに挿入する前に時刻を確定したいため、この関数で生成する時刻を使用する
 func TimeNowRoundDown() time.Time {
-	sugar := loglib.GetSugar()
-	defer sugar.Sync()
 
-	format := "2006-01-02 15:04:05"
-
-	var now time.Time
-	now = time.Now()
-
-	// 小数点以下を切り捨てて文字列を生成
-	var nowRoundString string
-	nowRoundString = now.Format(format)
-
-	// time.Timeを生成
-	loc, err := time.LoadLocation("Asia/Tokyo")
-	if err != nil {
-		sugar.Error(err)
-	}
-
-	nowRound, err := time.ParseInLocation(format, nowRoundString, loc)
-	if err != nil {
-		sugar.Error(err)
-	}
-
-	return nowRound
+	// utcからjstを生成
+	utc := time.Now().UTC()
+	localTime := utc.In(localLocation)
+	// 秒未満を切り捨てる
+	return localTime.Truncate(time.Second)
 }
 
 // getQuestion RedisからQuestionを取得する
