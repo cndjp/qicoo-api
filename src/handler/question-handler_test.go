@@ -197,3 +197,11 @@ func getMockQuestion() handler.Question {
 
 	return mq
 }
+
+func TestTimeNowRoundDown(t *testing.T) {
+
+	truncatedTime := handler.TimeNowRoundDown()
+	if truncatedTime.Nanosecond() != 0 {
+		t.Errorf("Nanosecond = %d, want %d", truncatedTime.Nanosecond(), 0)
+	}
+}
