@@ -139,18 +139,20 @@ func TimeNowRoundDown() time.Time {
 
 	format := "2006-01-02 15:04:05"
 
-	var now time.Time
-	now = time.Now()
+	// utcからjstを生成
+	var utc time.Time
+	utc = time.Now().UTC()
 
-	// 小数点以下を切り捨てて文字列を生成
-	var nowRoundString string
-	nowRoundString = now.Format(format)
-
-	// time.Timeを生成
 	loc, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
 		sugar.Error(err)
 	}
+
+	jst := utc.In(loc)
+
+	// 小数点以下を切り捨てて文字列を生成
+	var nowRoundString string
+	nowRoundString = jst.Format(format)
 
 	nowRound, err := time.ParseInLocation(format, nowRoundString, loc)
 	if err != nil {
