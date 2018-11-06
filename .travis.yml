@@ -29,6 +29,7 @@ script:
   - make test
 
 after_success:
+  - make docker-clean
   - make docker-build
 
 deploy:

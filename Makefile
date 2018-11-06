@@ -158,9 +158,15 @@ lint:
 golint-install:
 	go get -u golang.org/x/lint/golint
 
+.PHONY: docker-clean
+docker-clean:
+	-docker image ls -aq | xargs docker image rm
+
 .PHONY: docker-build
 docker-build:
-	docker build -t cndjp/$(NAME):$(VERSION) .;\
+	docker build -t cndjp/$(NAME):$(VERSION) .
+	$(eval IMAGE_DIGEST := $(shell docker image ls cndjp/$(NAME) --format="{{.Digest}}"))
+	echo $(IMAGE_DIGEST)
 
 .PHONY: docker-push
 docker-push:
@@ -192,7 +198,7 @@ github-update-manifest: github-setup
 		then \
 		sed -i -e "s/image: cndjp\/qicoo-api:v[0-9]*.[0-9]*.[0-9]*/image: cndjp\/qicoo-api:$(VERSION)/g" $(HOME)/qicoo-api-manifests/overlays/production/qicoo-api-patch.yaml; \
 	else \
-		sed -i -e "s/image: cndjp\/qicoo-api:v[0-9]*.[0-9]*.[0-9]*/image: cndjp\/qicoo-api:$(VERSION)/g" $(HOME)/qicoo-api-manifests/overlays/staging/qicoo-api-patch.yaml; \
+		sed -i -e "s/image: cndjp\/qicoo-api@sha256:[0-9a-f]{64}/image: cndjp\/qicoo-api@$(IMAGE_DIGEST)/g" $(HOME)/qicoo-api-manifests/overlays/staging/qicoo-api-patch.yaml; \
 	fi
 	cd $(HOME)/qicoo-api-manifests && \
 		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub add . && \
