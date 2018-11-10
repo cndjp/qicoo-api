@@ -18,7 +18,8 @@ func ReadinessHandler(w http.ResponseWriter, r *http.Request) {
 	err := ReadinessFunc(rci, dmi)
 	if err != nil {
 		sugar.Error(err)
-		return
+		w.WriteHeader(500)
+		w.Write([]byte("NG"))
 	}
 
 	w.Write([]byte("OK"))
