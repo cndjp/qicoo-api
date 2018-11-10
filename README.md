@@ -8,6 +8,45 @@
 
 test を動かすにはdockerサービスのインストールが必要です。
 
+## EKSでqicoo-api実行
+東方仗助による自動上げ下げで、EKSのstaging,productionネームスペースに自動的にqicoo-apiが稼働します。
+curlコマンドでの例を記載します
+
+### BASEURL設定
+
+```
+QICOOURL=https://api-s.qicoo.tokyo # staging
+QICOOURL=https://api.qicoo.tokyo   # production
+```
+
+### Create Question
+```
+curl -vvv -H "Content-Type: application/json" -X POST "$QICOOURL/v1/jkd1812/questions" -d '
+{
+  "program_id": "1",
+  "comment": "東方仗助の開発秘話を教えてください"
+}
+'
+```
+
+### List Question
+
+```
+curl -vvv -H "Content-Type: application/json" -X GET "$QICOOURL/v1/jkd1812/questions?start=1&end=10&sort=created_at&order=desc"
+```
+
+### Delete Question
+
+```
+curl -vvv -H "Content-Type: application/json" -X DELETE "$QICOOURL/v1/jkd1812/questions/qid"
+```
+
+### Like Question
+
+```
+curl -vvv -H "Content-Type: application/json" -X PUT "$QICOOURL/v1/jkd1812/questions/qid/like"
+```
+
 ## ローカルでqicoo-api実行
 ローカルで開発と同様に、以下コマンドでqicoo-apiをコンテナとして稼働させることが出来る
 
