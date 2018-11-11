@@ -39,6 +39,16 @@ create-dotenv:
 		echo Not Work. ;\
 	fi
 
+.PHONY: create-dotenv-for-travis
+create-dotenv-for-travis:
+	@if [ ! -f $(DOTENV) ]; \
+		then\
+		echo 'Create .env file for Travis env.' ;\
+		echo 'DOCKER_IMAGE_TAG=$(VERSION)-$(shell date '+%Y%m%d-%H%M')' >> ./.env ;\
+	else \
+		echo Not Work. ;\
+	fi
+
 .PHONY: test-main
 test-main:
 	go test -v ./src/qicoo-api_test.go

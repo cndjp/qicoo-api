@@ -11,6 +11,7 @@ services:
   - docker
 
 before_script:
+  - make create-dotenv-for-travis
   - make clean-all
   - make dep-install
   - make deps
