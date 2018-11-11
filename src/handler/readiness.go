@@ -11,6 +11,8 @@ func ReadinessHandler(w http.ResponseWriter, r *http.Request) {
 	sugar := loglib.GetSugar()
 	defer sugar.Sync()
 
+	sugar.Info("Requested Readiness.")
+
 	var rci RedisConnectionInterface = new(RedisManager)
 
 	var dmi MySQLDbmapInterface = new(MySQLManager)
@@ -23,6 +25,7 @@ func ReadinessHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte("OK"))
+	sugar.Info("Response Readiness.")
 }
 
 // ReadinessFunc test用に切だし
