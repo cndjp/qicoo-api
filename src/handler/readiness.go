@@ -37,7 +37,7 @@ func ReadinessFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface) error 
 	dbmap := dmi.GetMySQLdbmap()
 	defer dbmap.Db.Close()
 
-	_, err := dbmap.Query("SELECT 1;")
+	_, err := dbmap.Exec("SELECT 1;")
 	if err != nil {
 		sugar.Error(err)
 		return err
