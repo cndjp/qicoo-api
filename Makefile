@@ -16,6 +16,9 @@ DIST_DIRS := find * -type d -exec
 SRCS	:= $(shell find . -type f -name '*.go')
 LDFLAGS := -ldflags="-s -X \"main.version=$(VERSION)\""
 
+KUSTOMIZE_ACTION_FILE_NAME=kustomize-action.yaml
+REPOSITORY_MANIFESTS=https://github.com/cndjp/qicoo-api-manifests.git
+
 HUB_VERSION = 2.6.0
 
 $(TARGET): $(SRCS)
@@ -30,8 +33,7 @@ create-dotenv:
 		echo 'DB_PASSWORD=root' >> ./.env ;\
 		echo 'DB_URL=localhost:3306' >> ./.env ;\
 		echo 'REDIS_URL=localhost:6379' >> ./.env ;\
-		echo 'DOCKER_USERNAME=' >> ./.env ;\
-		echo 'DOCKER_PASSWORD=' >> ./.env ;\
+		echo 'DOCKER_IMAGE_TAG=$(VERSION)-$(shell date '+%Y%m%d-%H%M')' >> ./.env ;\
 		echo 'TRAVIS=' >> ./.env ;\
 	else \
 		echo Not Work. ;\
@@ -160,12 +162,12 @@ golint-install:
 
 .PHONY: docker-build
 docker-build:
-	docker build -t cndjp/$(NAME):$(VERSION) .;\
+	docker build -t cndjp/$(NAME):$(DOCKER_IMAGE_TAG) .
 
 .PHONY: docker-push
 docker-push:
 	echo "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USERNAME)" --password-stdin
-	docker push cndjp/$(NAME):$(VERSION)
+	docker push cndjp/$(NAME):$(DOCKER_IMAGE_TAG)
 
 .PHONY: github-setup
 github-setup:
@@ -183,22 +185,28 @@ github-setup:
 	curl -LO "https://github.com/github/hub/releases/download/v$(HUB_VERSION)/hub-linux-amd64-$(HUB_VERSION).tgz"
 	tar -C "$(HOME)" -zxf "hub-linux-amd64-$(HUB_VERSION).tgz"
 
-.PHONY: github-update-manifest
-github-update-manifest: github-setup
-	$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub clone "https://github.com/cndjp/qicoo-api-manifests.git" $(HOME)/qicoo-api-manifests
+.PHONY: update-kustomize-action
+update-kustomize-action: github-setup
+	$(eval HUB := $(shell echo $(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub))
+	$(HUB) clone "$(REPOSITORY_MANIFESTS)" $(HOME)/qicoo-api-manifests
 	cd $(HOME)/qicoo-api-manifests && \
-		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub checkout -b "travis/$(VERSION)"
+		$(HUB) checkout -b "CI/$(TRAVIS_BRANCH)-$(DOCKER_IMAGE_TAG)"
 	@if test "$(TRAVIS_BRANCH)" = "master"; \
 		then \
-		sed -i -e "s/image: cndjp\/qicoo-api:v[0-9]*.[0-9]*.[0-9]*/image: cndjp\/qicoo-api:$(VERSION)/g" $(HOME)/qicoo-api-manifests/overlays/production/qicoo-api-patch.yaml; \
+		sed -i -e '/^branch: release/s/release/master/gi' $(HOME)/qicoo-api-manifests/$(KUSTOMIZE_ACTION_FILE_NAME); \
+	elif test "$(TRAVIS_BRANCH)" = "release"; \
+		then \
+		echo 'branch : release' > $(HOME)/qicoo-api-manifests/$(KUSTOMIZE_ACTION_FILE_NAME) ;\
+		echo 'tag: $(DOCKER_IMAGE_TAG)' >> $(HOME)/qicoo-api-manifests/$(KUSTOMIZE_ACTION_FILE_NAME) ;\
 	else \
-		sed -i -e "s/image: cndjp\/qicoo-api:v[0-9]*.[0-9]*.[0-9]*/image: cndjp\/qicoo-api:$(VERSION)/g" $(HOME)/qicoo-api-manifests/overlays/staging/qicoo-api-patch.yaml; \
+		echo "This is not the master or release branch."; \
+		exit 1; \
 	fi
 	cd $(HOME)/qicoo-api-manifests && \
-		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub add . && \
-		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub commit -m "Update the image: cndjp/qicoo-api:$(VERSION)" && \
-		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub push --set-upstream origin "travis/$(VERSION)" && \
-		$(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub pull-request -m "Update the image: cndjp/qicoo-api:$(VERSION)"
+		$(HUB) add . && \
+		$(HUB) commit -m "[CI]: Update the kustomize-action definition: /$(TRAVIS_BRANCH)-$(DOCKER_IMAGE_TAG)" && \
+		$(HUB) push --set-upstream origin "CI/$(TRAVIS_BRANCH)-$(DOCKER_IMAGE_TAG)" && \
+		$(HUB) pull-request -m "[CI]: Update the definition: /$(TRAVIS_BRANCH)-$(DOCKER_IMAGE_TAG)"
 
 .PHONY: cross-build
 cross-build: deps
