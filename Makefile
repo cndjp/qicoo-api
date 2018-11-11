@@ -171,7 +171,11 @@ docker-push:
 
 .PHONY: github-setup
 github-setup:
-	echo "TRAVIS_BRANCH: $(TRAVIS_BRANCH)"
+	@if test "$(TRAVIS)" != "true" ;\
+		then \
+		echo "This job is not running in Travis env."; \
+		exit 1; \
+	fi
 	mkdir -p "$(HOME)/.config"
 	echo "https://$(GITHUB_TOKEN):@github.com" > "$(HOME)/.config/git-credential"
 	echo "github.com:" > "$(HOME)/.config/hub"
@@ -187,6 +191,11 @@ github-setup:
 
 .PHONY: update-kustomize-action
 update-kustomize-action: github-setup
+	@if test "$(TRAVIS)" != "true" ;\
+		then \
+		echo "This job is not running in Travis env."; \
+		exit 1; \
+	fi
 	$(eval HUB := $(shell echo $(HOME)/hub-linux-amd64-$(HUB_VERSION)/bin/hub))
 	$(HUB) clone "$(REPOSITORY_MANIFESTS)" $(HOME)/qicoo-api-manifests
 	cd $(HOME)/qicoo-api-manifests && \
