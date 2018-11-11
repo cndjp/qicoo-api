@@ -3,33 +3,40 @@ package handler
 import (
 	"net/http"
 
-	"github.com/sirupsen/logrus"
+	"github.com/cndjp/qicoo-api/src/loglib"
 )
 
 // ReadinessHandler ReadinessProbe用function
 func ReadinessHandler(w http.ResponseWriter, r *http.Request) {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
 	var rci RedisConnectionInterface = new(RedisManager)
 
 	var dmi MySQLDbmapInterface = new(MySQLManager)
 
 	err := ReadinessFunc(rci, dmi)
 	if err != nil {
-		logrus.Error(err)
-		return
+		sugar.Error(err)
+		w.WriteHeader(500)
+		w.Write([]byte("NG"))
 	}
 
 	w.Write([]byte("OK"))
 }
 
-// ReadinessFunc test
+// ReadinessFunc test用に切だし
 func ReadinessFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface) error {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
 	// DBに接続可能か確認
 	dbmap := dmi.GetMySQLdbmap()
 	defer dbmap.Db.Close()
 
 	_, err := dbmap.Query("SELECT 1;")
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return err
 	}
 
@@ -39,7 +46,7 @@ func ReadinessFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface) error 
 
 	_, err = redisConn.Do("SETEX", "readiness", "10800", "readinessmsg")
 	if err != nil {
-		logrus.Error(err)
+		sugar.Error(err)
 		return err
 	}
 
