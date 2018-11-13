@@ -128,12 +128,8 @@ func QuestionLikeDB(m *gorp.DbMap, v QuestionLikeMuxVars) error {
 	defer sugar.Sync()
 
 	sugar.Infof("SQL of QuestionLikeDB. SQL='UPDATE questions SET like_count=like_count+1 WHERE id = %s'", v.QuestionID)
-	_, err := m.Exec("UPDATE questions SET like_count=like_count+1 WHERE id = '" + v.QuestionID + "'")
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err := m.Exec("UPDATE questions SET like_count=like_count+1 WHERE id = ?", v.QuestionID)
+	return err
 }
 
 // QuestionLikeRedis RedisでLikeを増やす

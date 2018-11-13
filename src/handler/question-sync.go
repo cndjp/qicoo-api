@@ -45,14 +45,14 @@ func checkRedisKey(conn redis.Conn, rks RedisKeys) (bool, error) {
 // syncQuestion Redisにデータが存在しない場合、MySQLと同期を行う
 // return: 同期した件数(errorの場合,データが存在しない場合は0)、error
 func syncQuestion(conn redis.Conn, m *gorp.DbMap, eventID string, rks RedisKeys) (int, error) {
-	var questions []Question
 
 	sugar := loglib.GetSugar()
 	defer sugar.Sync()
 
 	sugar.Infof("SQL of syncQuesiton. SQL='SELECT * FROM questions WHERE event_id = %s'", eventID)
 
-	_, err := m.Select(&questions, "SELECT * FROM questions WHERE event_id = '"+eventID+"'")
+	var questions []Question
+	_, err := m.Select(&questions, "SELECT * FROM questions WHERE event_id = ?", eventID)
 	if err != nil {
 		sugar.Error(err)
 		return 0, err
