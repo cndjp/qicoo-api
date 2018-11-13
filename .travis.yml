@@ -33,14 +33,15 @@ after_success:
   - make docker-build
 
 deploy:
-  skip_cleanup: true
   - provider: script
+    skip_cleanup: true
     script: make docker-push
     on:
       condition: $TRAVIS == "true"
       branch:
         - release
   - provider: script
+    skip_cleanup: true
     script: make update-kustomize-action
     on:
       condition: $TRAVIS == "true"
