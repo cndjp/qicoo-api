@@ -45,6 +45,8 @@ create-dotenv-for-travis:
 		then\
 		echo 'Create .env file for Travis env.' ;\
 		echo 'DOCKER_IMAGE_TAG=$(VERSION)-$(shell date '+%Y%m%d-%H%M')' >> ./.env ;\
+		echo 'cat .env file in create-dotenv-for-travis' ;\
+		cat ./.env ;\
 	else \
 		echo Not Work. ;\
 	fi
@@ -176,6 +178,8 @@ docker-build:
 
 .PHONY: docker-push
 docker-push:
+	echo 'cat .env file in docker-push'
+	cat ./.env
 	echo "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USERNAME)" --password-stdin
 	docker push cndjp/$(NAME):$(DOCKER_IMAGE_TAG)
 

@@ -3,14 +3,13 @@
 
 
 
-
 # qicoo-api
 
 test を動かすにはdockerサービスのインストールが必要です。
 
 ## EKSでqicoo-api実行
 東方仗助による自動上げ下げで、EKSのstaging,productionネームスペースに自動的にqicoo-apiが稼働します。
-curlコマンドでの例を記載します
+curlコマンドでの例を記載します。
 
 ### BASEURL設定
 
