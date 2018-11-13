@@ -33,6 +33,7 @@ after_success:
   - make docker-build
 
 deploy:
+  skip_cleanup: true
   - provider: script
     script: make docker-push
     on:
