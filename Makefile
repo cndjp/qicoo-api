@@ -47,8 +47,8 @@ create-dotenv-for-travis:
 		echo 'DOCKER_IMAGE_TAG=$(VERSION)-$(shell date '+%Y%m%d-%H%M')' >> ./.env ;\
 		echo 'cat .env file in create-dotenv-for-travis' ;\
 		echo 'Create Variable DOCKER_IMAGE_TAG' ;\
-		$(eval DOCKER_IMAGE_TAG := $(VERSION)-$(shell date '+%Y%m%d-%H%M')) \
-		echo $(DOCKER_IMAGE_TAG)
+		$(eval DOCKER_IMAGE_TAG := $(VERSION)-$(shell date '+%Y%m%d-%H%M')) ;\
+		echo $(DOCKER_IMAGE_TAG) ;\
 		cat ./.env ;\
 	else \
 		echo Not Work. ;\
