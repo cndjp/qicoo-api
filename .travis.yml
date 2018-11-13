@@ -11,6 +11,7 @@ services:
   - docker
 
 before_script:
+  - make create-dotenv-for-travis
   - make clean-all
   - make dep-install
   - make deps
@@ -39,7 +40,7 @@ deploy:
       branch:
         - release
   - provider: script
-    script: make github-update-manifest
+    script: make update-kustomize-action
     on:
       condition: $TRAVIS == "true"
       branch:
