@@ -219,7 +219,7 @@ update-kustomize-action: github-setup
 		sed -i -e '/^branch: release/s/release/master/gi' $(HOME)/qicoo-api-manifests/$(KUSTOMIZE_ACTION_FILE_NAME); \
 	elif test "$(TRAVIS_BRANCH)" = "release"; \
 		then \
-		echo 'branch : release' > $(HOME)/qicoo-api-manifests/$(KUSTOMIZE_ACTION_FILE_NAME) ;\
+		echo 'branch: release' > $(HOME)/qicoo-api-manifests/$(KUSTOMIZE_ACTION_FILE_NAME) ;\
 		echo 'tag: $(DOCKER_IMAGE_TAG)' >> $(HOME)/qicoo-api-manifests/$(KUSTOMIZE_ACTION_FILE_NAME) ;\
 	else \
 		echo "This is not the master or release branch."; \
