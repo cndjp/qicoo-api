@@ -52,8 +52,10 @@ curl -vvv -H "Content-Type: application/json" -X PUT "$QICOOURL/v1/jkd1812/quest
 ```
 docker run --name qicoo-api-test-mysql --rm -d -e MYSQL_ROOT_PASSWORD=my-secret-pw --network host sugimount/qicoo-local-mysql:0.0.1 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci;
 docker run --name qicoo-api-test-redis --rm -d --network host redis:4.0.10
-docker run --name qicoo-api-test --rm -d -e DB_URL="127.0.0.1:3306" -e DB_USER="root" -e DB_PASSWORD="my-secret-pw" -e REDIS_URL="127.0.0.1:6379" --network host cndjp/qicoo-api:0.0.1
+docker run --name qicoo-api-test --rm -d -e DB_URL="127.0.0.1:3306" -e DB_USER="root" -e DB_PASSWORD="my-secret-pw" -e REDIS_URL="127.0.0.1:6379" --network host cndjp/qicoo-api:v0.0.1-20181122-1707
 ```
+
+※ image tag は、以下のDockerHubから最新のImageを指定して取得すると良いです
 
 - QuestionList
 
