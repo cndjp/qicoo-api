@@ -35,6 +35,7 @@ const (
 type QuestionList struct {
 	Object string     `json:"object"`
 	Type   string     `json:"type"`
+	Total  int        `json:"total"`
 	Data   []Question `json:"data"`
 }
 

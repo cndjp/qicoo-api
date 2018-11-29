@@ -158,7 +158,7 @@ func selectRedisSortedKey(sort string, rks RedisKeys) (sortedkey string) {
 	}
 }
 
-// GetQuestionList RedisとDBからデータを取得する
+// GetQuestionList Redisからデータ及び質問件数を取得する
 func GetQuestionList(conn redis.Conn, v QuestionListMuxVars, rks RedisKeys) (questionList QuestionList, err error) {
 	sugar := loglib.GetSugar()
 	defer sugar.Sync()
@@ -195,7 +195,7 @@ func GetQuestionList(conn redis.Conn, v QuestionListMuxVars, rks RedisKeys) (que
 		questions = append(questions, *q)
 	}
 
-	// DB or Redis から取得したデータのtimezoneをAsia/Tokyoと指定
+	// Redis から取得したデータのtimezoneをAsia/Tokyoと指定
 	locationTokyo, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
 		sugar.Fatal(err)
@@ -207,10 +207,17 @@ func GetQuestionList(conn redis.Conn, v QuestionListMuxVars, rks RedisKeys) (que
 		questions[i].UpdatedAt = questions[i].UpdatedAt.In(locationTokyo)
 	}
 
+	// Redis から質問件数を取得
+	totalInt, err := redis.Int(conn.Do("HLEN", rks.QuestionKey))
+	if err != nil {
+		return getZeroQuestionList(), err
+	}
+
 	questionList = QuestionList{
 		Data:   questions,
 		Object: "list",
 		Type:   "question",
+		Total:  totalInt,
 	}
 
 	return questionList, nil
