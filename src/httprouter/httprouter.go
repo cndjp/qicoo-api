@@ -40,6 +40,9 @@ func MakeRouter(questionCreateFunc, questionListFunc, questionDeleteFunc, questi
 	r.Path("/v1/{event_id:[a-zA-Z0-9-_]+}/questions/{question_id:[a-zA-Z0-9-_]+}/like").
 		Methods("PUT").
 		HandlerFunc(questionLikeFunc)
+	r.Path("/v1/{event_id:[a-zA-Z0-9-_]+}/questions/{question_id:[a-zA-Z0-9-_]+}/like").
+		Methods("OPTIONS").
+		HandlerFunc(corsPrelightFunc)
 
 	// route LivenessProbe
 	r.Path("/liveness").
