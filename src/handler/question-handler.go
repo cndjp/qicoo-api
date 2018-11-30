@@ -136,13 +136,7 @@ func (mm *MySQLManager) GetMySQLdbmap() *gorp.DbMap {
 	sugar := loglib.GetSugar()
 	defer sugar.Sync()
 
-	dbmap, err := mysqlib.GetMySQLdbmap()
-
-	if err != nil {
-		sugar.Error(err)
-		return nil
-	}
-
+	dbmap := mysqlib.GetMySQLdbmap()
 	dbmap.AddTableWithName(Question{}, "questions")
 	return dbmap
 }
