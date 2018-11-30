@@ -22,7 +22,6 @@ func GetMySQLdbmap() (dbmap *gorp.DbMap) {
 func InitDB() error {
 	sugar := loglib.GetSugar()
 	defer sugar.Sync()
-	var err error
 
 	dbms := "mysql"
 	user := os.Getenv("DB_USER")
@@ -32,29 +31,14 @@ func InitDB() error {
 	option := "?parseTime=true"
 
 	connect := user + ":" + password + "@" + protocol + "/" + dbname + option
-	qicooDB, err = sql.Open(dbms, connect)
-
-	minconns, err := strconv.Atoi(os.Getenv("MYSQL_MAX_IDLE_CONNECTIONS"))
-	if err != nil {
-		sugar.Error(err)
-		return err
-	}
-
-	maxconns, err := strconv.Atoi(os.Getenv("MYSQL_MAX_OPEN_CONNECTIONS"))
-	if err != nil {
-		sugar.Error(err)
-		return err
-	}
-
-	qicooDB.SetMaxIdleConns(minconns)
-	qicooDB.SetMaxOpenConns(maxconns)
+	db, err := sql.Open(dbms, connect)
 
 	if err != nil {
 		sugar.Error(err)
 		return err
 	}
 
-	dbmap := &gorp.DbMap{Db: qicooDB, Dialect: gorp.MySQLDialect{}}
+	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.MySQLDialect{}}
 
 	// DATABASEの作成 (DATABASEが存在するか確認する良い方法がなかったため、CREATEを投げている)
 	_, err = dbmap.Exec("CREATE DATABASE qicoo;")
@@ -95,6 +79,67 @@ func InitDB() error {
 			sugar.Error(err)
 			return err
 		}
+	}
+
+	err = openDB()
+	if err != nil {
+		sugar.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+// openDB sql.Openし変数へ格納
+func openDB() error {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+	var err error
+
+	dbms := "mysql"
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	protocol := "tcp(" + os.Getenv("DB_URL") + ")"
+	dbname := "qicoo"
+	option := "?parseTime=true"
+
+	connect := user + ":" + password + "@" + protocol + "/" + dbname + option
+	qicooDB, err = sql.Open(dbms, connect)
+
+	if err != nil {
+		sugar.Error(err)
+		return err
+	}
+
+	minconns, err := strconv.Atoi(os.Getenv("MYSQL_MAX_IDLE_CONNECTIONS"))
+	if err != nil {
+		sugar.Error(err)
+		return err
+	}
+
+	maxconns, err := strconv.Atoi(os.Getenv("MYSQL_MAX_OPEN_CONNECTIONS"))
+	if err != nil {
+		sugar.Error(err)
+		return err
+	}
+
+	qicooDB.SetMaxIdleConns(minconns)
+	qicooDB.SetMaxOpenConns(maxconns)
+
+	return nil
+}
+
+// CloseDB DBをcloseする
+func CloseDB() error {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+	var err error
+
+	err = qicooDB.Close()
+
+	if err != nil {
+		sugar.Error(err)
+		return err
 	}
 
 	return nil

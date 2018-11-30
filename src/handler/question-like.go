@@ -70,7 +70,7 @@ func QuestionLikeFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v Q
 	defer sugar.Sync()
 
 	var dbmap = dmi.GetMySQLdbmap()
-	defer dbmap.Db.Close()
+	//defer dbmap.Db.Close()
 	dbmap.TraceOn("", log.New(os.Stdout, "gorptrace: ", log.LstdFlags))
 
 	var question Question
@@ -88,7 +88,7 @@ func QuestionLikeFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v Q
 
 	// RedisのConnection生成
 	redisConn := rci.GetRedisConnection()
-	defer redisConn.Close()
+	//defer redisConn.Close()
 
 	// Keyを生成
 	rks := GetRedisKeys(v.EventID)
