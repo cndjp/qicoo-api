@@ -88,7 +88,7 @@ func QuestionDeleteFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v
 
 	var dbmap *gorp.DbMap
 	dbmap = dmi.GetMySQLdbmap()
-	defer dbmap.Db.Close()
+	//defer dbmap.Db.Close()
 
 	// gorpのトランザクション処理。DBとRedisの両方とも削除が出来た場合に、commitする
 	trans, err := dbmap.Begin()
@@ -155,7 +155,7 @@ func QuestionDeleteRedis(rci RedisConnectionInterface, dmi MySQLDbmapInterface, 
 
 	if !yes {
 		dbmap := dmi.GetMySQLdbmap()
-		defer dbmap.Db.Close()
+		//defer dbmap.Db.Close()
 		_, err := syncQuestion(redisConn, dbmap, v.EventID, rks)
 		// 同期にエラー
 		if err != nil {
