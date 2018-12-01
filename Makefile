@@ -34,6 +34,8 @@ create-dotenv:
 		echo 'DB_PASSWORD=root' >> ./.env ;\
 		echo 'DB_URL=localhost:3306' >> ./.env ;\
 		echo 'REDIS_URL=localhost:6379' >> ./.env ;\
+		echo 'MYSQL_MAX_IDLE_CONNECTIONS=10' >> ./.env ;\
+		echo 'MYSQL_MAX_OPEN_CONNECTIONS=25' >> ./.env ;\
 		echo 'DOCKER_IMAGE_TAG=$(VERSION)-$(shell date '+%Y%m%d-%H%M')' >> ./.env ;\
 		echo 'TRAVIS=' >> ./.env ;\
 	else \
