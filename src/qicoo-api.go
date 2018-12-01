@@ -46,6 +46,8 @@ func init() {
 }
 
 func main() {
+	defer mysqlib.CloseDB()
+
 	r := httprouter.MakeRouter(
 		handler.QuestionCreateHandler,
 		handler.QuestionListHandler,

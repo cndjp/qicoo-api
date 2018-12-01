@@ -35,7 +35,7 @@ func ReadinessFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface) error 
 
 	// DBに接続可能か確認
 	dbmap := dmi.GetMySQLdbmap()
-	defer dbmap.Db.Close()
+	//defer dbmap.Db.Close()
 
 	_, err := dbmap.Exec("SELECT 1;")
 	if err != nil {

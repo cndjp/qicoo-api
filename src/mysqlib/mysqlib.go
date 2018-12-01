@@ -3,6 +3,7 @@ package mysqlib
 import (
 	"database/sql"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/cndjp/qicoo-api/src/loglib"
@@ -10,29 +11,11 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+var qicooDB *sql.DB
+
 // GetMySQLdbmap Dbmapの取得
-func GetMySQLdbmap() (dbmap *gorp.DbMap, err error) {
-	sugar := loglib.GetSugar()
-	defer sugar.Sync()
-
-	dbms := "mysql"
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	protocol := "tcp(" + os.Getenv("DB_URL") + ")"
-	dbname := "qicoo"
-	option := "?parseTime=true"
-
-	connect := user + ":" + password + "@" + protocol + "/" + dbname + option
-	db, err := sql.Open(dbms, connect)
-
-	if err != nil {
-		sugar.Error(err)
-		return nil, err
-	}
-
-	dbmap = &gorp.DbMap{Db: db, Dialect: gorp.MySQLDialect{}}
-
-	return dbmap, nil
+func GetMySQLdbmap() (dbmap *gorp.DbMap) {
+	return &gorp.DbMap{Db: qicooDB, Dialect: gorp.MySQLDialect{}}
 }
 
 // InitDB DBの初期設定。DatabaseやTableが存在しない場合は作成する
@@ -51,7 +34,6 @@ func InitDB() error {
 	db, err := sql.Open(dbms, connect)
 
 	if err != nil {
-		sugar.Error(err)
 		return err
 	}
 
@@ -67,7 +49,6 @@ func InitDB() error {
 		if strings.Contains(errmsg, "Can't create database 'qicoo'; database exists") {
 			sugar.Info("qicoo DATABASE exists")
 		} else {
-			sugar.Error(err)
 			return err
 		}
 	}
@@ -93,9 +74,59 @@ func InitDB() error {
 		if strings.Contains(errmsg, "Table 'questions' already exists") {
 			sugar.Info("questions TABLE exists")
 		} else {
-			sugar.Error(err)
 			return err
 		}
+	}
+
+	return openDB()
+}
+
+// openDB sql.Openし変数へ格納
+func openDB() error {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+	var err error
+
+	dbms := "mysql"
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	protocol := "tcp(" + os.Getenv("DB_URL") + ")"
+	dbname := "qicoo"
+	option := "?parseTime=true"
+
+	connect := user + ":" + password + "@" + protocol + "/" + dbname + option
+	qicooDB, err = sql.Open(dbms, connect)
+
+	if err != nil {
+		return err
+	}
+
+	minconns, err := strconv.Atoi(os.Getenv("MYSQL_MAX_IDLE_CONNECTIONS"))
+	if err != nil {
+		return err
+	}
+
+	maxconns, err := strconv.Atoi(os.Getenv("MYSQL_MAX_OPEN_CONNECTIONS"))
+	if err != nil {
+		return err
+	}
+
+	qicooDB.SetMaxIdleConns(minconns)
+	qicooDB.SetMaxOpenConns(maxconns)
+
+	return nil
+}
+
+// CloseDB DBをcloseする
+func CloseDB() error {
+	sugar := loglib.GetSugar()
+	defer sugar.Sync()
+
+	err := qicooDB.Close()
+
+	if err != nil {
+		sugar.Error(err)
+		return err
 	}
 
 	return nil
