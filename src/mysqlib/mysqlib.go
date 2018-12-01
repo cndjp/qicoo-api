@@ -34,7 +34,6 @@ func InitDB() error {
 	db, err := sql.Open(dbms, connect)
 
 	if err != nil {
-		sugar.Error(err)
 		return err
 	}
 
@@ -50,7 +49,6 @@ func InitDB() error {
 		if strings.Contains(errmsg, "Can't create database 'qicoo'; database exists") {
 			sugar.Info("qicoo DATABASE exists")
 		} else {
-			sugar.Error(err)
 			return err
 		}
 	}
@@ -76,25 +74,17 @@ func InitDB() error {
 		if strings.Contains(errmsg, "Table 'questions' already exists") {
 			sugar.Info("questions TABLE exists")
 		} else {
-			sugar.Error(err)
 			return err
 		}
 	}
 
-	err = openDB()
-	if err != nil {
-		sugar.Error(err)
-		return err
-	}
-
-	return nil
+	return openDB()
 }
 
 // openDB sql.Openし変数へ格納
 func openDB() error {
 	sugar := loglib.GetSugar()
 	defer sugar.Sync()
-	var err error
 
 	dbms := "mysql"
 	user := os.Getenv("DB_USER")
@@ -104,22 +94,19 @@ func openDB() error {
 	option := "?parseTime=true"
 
 	connect := user + ":" + password + "@" + protocol + "/" + dbname + option
-	qicooDB, err = sql.Open(dbms, connect)
+	qicooDB, err := sql.Open(dbms, connect)
 
 	if err != nil {
-		sugar.Error(err)
 		return err
 	}
 
 	minconns, err := strconv.Atoi(os.Getenv("MYSQL_MAX_IDLE_CONNECTIONS"))
 	if err != nil {
-		sugar.Error(err)
 		return err
 	}
 
 	maxconns, err := strconv.Atoi(os.Getenv("MYSQL_MAX_OPEN_CONNECTIONS"))
 	if err != nil {
-		sugar.Error(err)
 		return err
 	}
 
@@ -133,9 +120,8 @@ func openDB() error {
 func CloseDB() error {
 	sugar := loglib.GetSugar()
 	defer sugar.Sync()
-	var err error
 
-	err = qicooDB.Close()
+	err := qicooDB.Close()
 
 	if err != nil {
 		sugar.Error(err)
