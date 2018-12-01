@@ -100,7 +100,7 @@ func QuestionListFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v Q
 
 	if !yes {
 		dbmap := dmi.GetMySQLdbmap()
-		defer dbmap.Db.Close()
+		//defer dbmap.Db.Close()
 		sc, err := syncQuestion(redisConn, dbmap, v.EventID, rks)
 
 		// 同期にエラー
