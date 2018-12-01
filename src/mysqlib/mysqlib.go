@@ -85,6 +85,7 @@ func InitDB() error {
 func openDB() error {
 	sugar := loglib.GetSugar()
 	defer sugar.Sync()
+	var err error
 
 	dbms := "mysql"
 	user := os.Getenv("DB_USER")
@@ -94,7 +95,7 @@ func openDB() error {
 	option := "?parseTime=true"
 
 	connect := user + ":" + password + "@" + protocol + "/" + dbname + option
-	qicooDB, err := sql.Open(dbms, connect)
+	qicooDB, err = sql.Open(dbms, connect)
 
 	if err != nil {
 		return err
