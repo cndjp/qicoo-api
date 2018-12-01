@@ -16,8 +16,6 @@ DIST_DIRS := find * -type d -exec
 SRCS	:= $(shell find . -type f -name '*.go')
 LDFLAGS := -ldflags="-s -X \"main.version=$(VERSION)\""
 
-MYSQL_MAX_IDLE_CONNECTIONS := 50
-MYSQL_MAX_OPEN_CONNECTIONS := 200
 
 KUSTOMIZE_ACTION_FILE_NAME=kustomize-action.yaml
 REPOSITORY_MANIFESTS=https://github.com/cndjp/qicoo-api-manifests.git

@@ -113,6 +113,8 @@ func openDB() error {
 
 	qicooDB.SetMaxIdleConns(minconns)
 	qicooDB.SetMaxOpenConns(maxconns)
+	sugar.Info("MYSQL_MAX_IDLE_CONNECTION is ", minconns)
+	sugar.Info("MYSQL_MAX_OPEN_CONNECTION is ", maxconns)
 
 	return nil
 }
