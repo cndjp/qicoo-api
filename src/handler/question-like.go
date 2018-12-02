@@ -105,16 +105,19 @@ func QuestionLikeFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v Q
 	// gorpのトランザクション処理。DBとRedisの両方とも書き込みが出来た場合に、commitする
 	trans, err := dbmap.Begin()
 	if err != nil {
+		trans.Rollback()
 		return question, err
 	}
 
 	err = QuestionLikeDB(dbmap, v, likeQuestion)
 	if err != nil {
+		trans.Rollback()
 		return question, err
 	}
 
 	question, err = QuestionLikeRedis(redisConn, v, rks)
 	if err != nil {
+		trans.Rollback()
 		return question, err
 	}
 
