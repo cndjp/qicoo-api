@@ -3,10 +3,10 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/cndjp/qicoo-api/src/loglib"
 	"github.com/go-gorp/gorp"
@@ -76,25 +76,13 @@ func QuestionLikeFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v Q
 
 	var question Question
 
-	// gorpのトランザクション処理。DBとRedisの両方とも書き込みが出来た場合に、commitする
-	trans, err := dbmap.Begin()
-	if err != nil {
-		return question, err
-	}
-
-	err = QuestionLikeDB(dbmap, v)
-	if err != nil {
-		return question, err
-	}
-
-	// RedisのConnection生成
 	redisConn := rci.GetRedisConnection()
-	//defer redisConn.Close()
+	defer redisConn.Close()
 
 	// Keyを生成
 	rks := GetRedisKeys(v.EventID)
 
-	// Redisにデータが無ければ、DBと同期して終了。データが存在する場合はRedisでもLikeをカウントアップ
+	// Redisにデータが無ければ、DBと同期する。(DBへLikeをUpdateするためには、questionオブジェクトを取得する必要があり、Redisから取得する)
 	yes, err := checkRedisKey(redisConn, rks)
 	if err != nil {
 		return question, err
@@ -106,17 +94,28 @@ func QuestionLikeFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v Q
 		if err != nil {
 			return question, err
 		}
+	}
 
-		// 同期後にQuestion取得
-		question, err = getQuestion(redisConn, dbmap, v.EventID, v.QuestionID, rks)
-		if err != nil {
-			return question, err
-		}
-	} else {
-		question, err = QuestionLikeRedis(redisConn, v, rks)
-		if err != nil {
-			return question, err
-		}
+	// Redisから更新対象のjsonデータを取得
+	likeQuestion, err := getQuestionRedis(redisConn, v, rks)
+	if err != nil {
+		return question, err
+	}
+
+	// gorpのトランザクション処理。DBとRedisの両方とも書き込みが出来た場合に、commitする
+	trans, err := dbmap.Begin()
+	if err != nil {
+		return question, err
+	}
+
+	err = QuestionLikeDB(dbmap, v, likeQuestion)
+	if err != nil {
+		return question, err
+	}
+
+	question, err = QuestionLikeRedis(redisConn, v, rks)
+	if err != nil {
+		return question, err
 	}
 
 	trans.Commit()
@@ -124,14 +123,18 @@ func QuestionLikeFunc(rci RedisConnectionInterface, dmi MySQLDbmapInterface, v Q
 }
 
 // QuestionLikeDB MySQL上でLikeを増やす
-func QuestionLikeDB(m *gorp.DbMap, v QuestionLikeMuxVars) error {
+func QuestionLikeDB(m *gorp.DbMap, v QuestionLikeMuxVars, question Question) error {
 	sugar := loglib.GetSugar()
 	defer sugar.Sync()
 
 	sugar.Infof("SQL of QuestionLikeDB. SQL='UPDATE questions SET like_count=like_count+1 WHERE id = %s'", v.QuestionID)
-	stmtUpd, err := m.Prepare(fmt.Sprintf("UPDATE questions SET like_count=like_count+1 WHERE id = ?"))
-	defer stmtUpd.Close()
-	_, err = stmtUpd.Exec(v.QuestionID)
+	//stmtUpd, err := m.Prepare(fmt.Sprintf("UPDATE questions SET like_count=like_count+1 WHERE id = ?"))
+	//defer stmtUpd.Close()
+	//_, err = stmtUpd.Exec(v.QuestionID)
+
+	question.Like = question.Like + 1
+	_, err := m.Update(&question)
+
 	return err
 }
 
@@ -177,4 +180,31 @@ func QuestionLikeRedis(conn redis.Conn, v QuestionLikeMuxVars, rks RedisKeys) (Q
 	}
 
 	return q, nil
+}
+
+// getQuestionRedis Redisから単体の質問を取得する。
+func getQuestionRedis(conn redis.Conn, v QuestionLikeMuxVars, rks RedisKeys) (question Question, err error) {
+	q := new(Question)
+
+	bytesSlice, err := redis.ByteSlices(conn.Do("HMGET", rks.QuestionKey, v.QuestionID))
+
+	if err != nil {
+		return *q, err
+	}
+
+	err = json.Unmarshal(bytesSlice[0], q)
+	if err != nil {
+		return *q, err
+	}
+
+	// Redis から取得したデータのtimezoneをAsia/Tokyoと指定
+	locationTokyo, err := time.LoadLocation("Asia/Tokyo")
+	if err != nil {
+		return *q, err
+	}
+
+	q.CreatedAt = q.CreatedAt.In(locationTokyo)
+	q.UpdatedAt = q.UpdatedAt.In(locationTokyo)
+
+	return *q, nil
 }
