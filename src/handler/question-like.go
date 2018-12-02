@@ -130,6 +130,7 @@ func QuestionLikeDB(m *gorp.DbMap, v QuestionLikeMuxVars) error {
 
 	sugar.Infof("SQL of QuestionLikeDB. SQL='UPDATE questions SET like_count=like_count+1 WHERE id = %s'", v.QuestionID)
 	stmtUpd, err := m.Prepare(fmt.Sprintf("UPDATE questions SET like_count=like_count+1 WHERE id = ?"))
+	defer stmtUpd.Close()
 	_, err = stmtUpd.Exec(v.QuestionID)
 	return err
 }
