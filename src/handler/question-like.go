@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -128,7 +129,8 @@ func QuestionLikeDB(m *gorp.DbMap, v QuestionLikeMuxVars) error {
 	defer sugar.Sync()
 
 	sugar.Infof("SQL of QuestionLikeDB. SQL='UPDATE questions SET like_count=like_count+1 WHERE id = %s'", v.QuestionID)
-	_, err := m.Exec("UPDATE questions SET like_count=like_count+1 WHERE id = ?", v.QuestionID)
+	stmtUpd, err := m.Prepare(fmt.Sprintf("UPDATE questions SET like_count=like_count+1 WHERE id = ?"))
+	_, err = stmtUpd.Exec(v.QuestionID)
 	return err
 }
 
