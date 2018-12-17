@@ -1,5 +1,6 @@
 [![Travis CI](https://travis-ci.org/cndjp/qicoo-api.svg?branch=master)](https://travis-ci.org/cndjp/qicoo-api)
 [![Go Report Card](https://goreportcard.com/badge/github.com/cndjp/qicoo-api)](https://goreportcard.com/report/github.com/cndjp/qicoo-api)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fcndjp%2Fqicoo-api.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fcndjp%2Fqicoo-api?ref=badge_shield)
 
 
 
@@ -103,3 +104,7 @@ export REDIS_URL="127.0.0.1:6379"
 
 基本的にローカルとtravis CI間で差分はない。
 両方とも実際のMySQLとRedisを使用してテストデータを読み書きしている。
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fcndjp%2Fqicoo-api.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fcndjp%2Fqicoo-api?ref=badge_large)
